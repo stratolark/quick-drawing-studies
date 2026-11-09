@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick Studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;display=swap">
+<style>
+:root {
+  /* Layout: one-screen app. Home scrolls; the drawing screen puts the reference and your canvas side by side (stacked when the screen is taller than wide). */
+  --graphite: #1c1f24;
+  --slate: #262a31;
+  --slate-2: #2f343c;
+  --rule: #3b414b;
+  --chalk: #eceef1;
+  --dim: #a0a8b3;
+  --vermilion: #ff5b3a;
+  --vermilion-ink: #1c0d08;
+  --blueline: #82bbff;
+  --paper: #ffffff;
+  --good: #6fcf97;
+  --warn: #f2c14e;
+  --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius: 6px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--graphite);
+  color: var(--chalk);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing: 0.01em; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.55rem; text-transform: uppercase; }
+p { margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--blueline); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+#app { height: 100%; }
+.screen { display: none; height: 100%; }
+.screen.is-active { display: flex; flex-direction: column; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 8px 14px;
+  background: var(--slate-2); border: 1px solid var(--rule); border-radius: var(--radius);
+  cursor: pointer; font-weight: 600; white-space: nowrap;
+}
+.btn:hover { border-color: var(--dim); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn-primary { background: var(--vermilion); border-color: var(--vermilion); color: var(--vermilion-ink); }
+.btn-primary:hover { filter: brightness(1.08); border-color: var(--vermilion); }
+.btn-ghost { background: transparent; }
+.btn svg { width: 18px; height: 18px; }
+
+/* ---------- home ---------- */
+#home { overflow-y: auto; }
+.wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 20px 48px; display: flex; flex-direction: column; gap: 28px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0 0; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.brand-mark { width: 26px; height: 26px; border-radius: 4px; background: var(--paper); position: relative; overflow: hidden; }
+.brand-mark::after { content: ""; position: absolute; left: -4px; right: -4px; top: 12px; height: 3px; background: var(--vermilion); transform: rotate(-32deg); }
+.stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--slate); font-size: 0.9rem; color: var(--dim); }
+.chip b { color: var(--chalk); font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); gap: 32px; align-items: center; }
+.hero h1 { font-size: clamp(2.8rem, 7vw, 5.4rem); line-height: 0.92; text-transform: uppercase; }
+.hero p { color: var(--dim); max-width: 52ch; margin-top: 16px; font-size: 1.05rem; }
+.hero-demo { margin: 0; justify-self: end; width: min(100%, 340px); }
+.hero-demo canvas { display: block; width: 100%; height: auto; border-radius: var(--radius); background: var(--slate); aspect-ratio: 3 / 4; }
+.hero-demo figcaption { font-size: 0.82rem; color: var(--dim); margin-top: 8px; }
+
+.focus-card { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 16px; align-items: center; padding: 16px 18px; background: var(--slate); border: 1px solid var(--rule); border-left: 4px solid var(--blueline); border-radius: var(--radius); }
+.focus-card .label { grid-column: 1; font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: 1.05rem; color: var(--blueline); }
+.focus-card .text { grid-column: 2; font-size: 1.05rem; }
+.focus-card .src { grid-column: 2; font-size: 0.85rem; color: var(--dim); }
+.focus-card .btn { grid-column: 3; grid-row: 1 / span 2; }
+
+.setup { display: flex; flex-direction: column; gap: 18px; padding: 22px; background: var(--slate); border: 1px solid var(--rule); border-radius: var(--radius); }
+.modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mode-card { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; text-align: left; padding: 16px; background: var(--graphite); border: 2px solid var(--rule); border-radius: var(--radius); cursor: pointer; }
+.mode-card:hover { border-color: var(--dim); }
+.mode-card[aria-checked="true"] { border-color: var(--vermilion); background: #2a211f; }
+.mode-card .m-name { font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; text-transform: uppercase; line-height: 1; }
+.mode-card .m-time { font-family: var(--font-display); font-weight: 800; font-size: 1.7rem; line-height: 1; font-variant-numeric: tabular-nums; color: var(--vermilion); }
+.mode-card .m-icon { grid-column: 1 / -1; height: 48px; margin: 8px 0 6px; color: var(--chalk); }
+.mode-card .m-icon svg { height: 100%; width: auto; }
+.mode-card .m-tools { grid-column: 1 / -1; font-weight: 600; }
+.mode-card .m-trains { grid-column: 1 / -1; color: var(--dim); font-size: 0.9rem; }
+
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px 24px; align-items: start; }
+.opt { display: flex; flex-direction: column; gap: 6px; }
+.opt-label { font-size: 0.85rem; color: var(--dim); font-weight: 600; }
+.opt-note { font-size: 0.82rem; color: var(--dim); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; width: fit-content; max-width: 100%; flex-wrap: nowrap; }
+.seg button { padding: 8px 13px; white-space: nowrap; background: var(--graphite); border: 0; border-right: 1px solid var(--rule); cursor: pointer; min-height: 40px; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-checked="true"] { background: var(--chalk); color: var(--graphite); font-weight: 600; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--rule); border-radius: var(--radius); overflow: hidden; width: fit-content; }
+.stepper button { width: 40px; min-height: 40px; background: var(--graphite); border: 0; cursor: pointer; font-size: 1.2rem; }
+.stepper output { min-width: 64px; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.toggle { display: inline-flex; gap: 10px; align-items: center; cursor: pointer; min-height: 40px; }
+.toggle input { width: 20px; height: 20px; accent-color: var(--vermilion); }
+.start-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.btn-start { min-height: 54px; padding: 12px 28px; font-size: 1.1rem; }
+.start-row .opt-note { max-width: 60ch; }
+
+.lower { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 20px; align-items: start; }
+.panel { display: flex; flex-direction: column; gap: 14px; padding: 20px; background: var(--slate); border: 1px solid var(--rule); border-radius: var(--radius); }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.panel p.hint { color: var(--dim); font-size: 0.9rem; }
+.upload-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.upload-row select { min-height: 40px; padding: 6px 10px; background: var(--graphite); border: 1px solid var(--rule); border-radius: var(--radius); }
+.drop { border: 2px dashed var(--rule); border-radius: var(--radius); padding: 14px; color: var(--dim); font-size: 0.9rem; text-align: center; }
+.drop.is-over { border-color: var(--blueline); color: var(--chalk); }
+.ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.ref-item { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.ref-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; background: var(--graphite); display: block; }
+.ref-item select { width: 100%; font-size: 0.8rem; padding: 3px 4px; background: var(--graphite); border: 1px solid var(--rule); border-radius: 4px; }
+.ref-item .del { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 4px; border: 0; background: rgba(20, 22, 26, 0.82); cursor: pointer; display: grid; place-items: center; }
+.ref-item .del svg { width: 14px; height: 14px; }
+.status { font-size: 0.85rem; color: var(--dim); min-height: 1.2em; }
+.status.is-error { color: var(--warn); }
+
+.history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.history li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.history li:first-child { border-top: 0; }
+.history .h-main { font-weight: 600; }
+.history .h-sub { grid-column: 1; color: var(--dim); font-size: 0.85rem; }
+.history .h-score { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.empty { color: var(--dim); font-size: 0.9rem; }
+
+/* ---------- drawing screen ---------- */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--rule); background: var(--graphite); flex: 0 0 auto; }
+.bar-title { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.bar-title strong { font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; text-transform: uppercase; }
+.bar-title span { color: var(--dim); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-left, .bar-right { display: flex; align-items: center; gap: 10px; }
+.timer { font-family: var(--font-display); font-weight: 800; font-size: 2.9rem; line-height: 1; font-variant-numeric: tabular-nums; min-width: 2.6ch; text-align: right; }
+.timer.is-low { color: var(--vermilion); }
+.timebar { height: 6px; background: var(--slate-2); flex: 0 0 auto; }
+.timebar div { height: 100%; width: 100%; background: var(--vermilion); transform-origin: left; }
+.stage { position: relative; flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 16px; }
+.stage.is-col { flex-direction: column; }
+.pane { position: relative; flex: 0 0 auto; border-radius: 4px; overflow: hidden; background: var(--slate); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.35); }
+.pane img { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; }
+.pane-canvas { background: var(--paper); }
+.pane-canvas canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#preview { pointer-events: none; }
+.pane-canvas.is-locked canvas { cursor: default; }
+.pane-canvas:not(.is-locked) #sketch { cursor: crosshair; }
+.pane-tag { position: absolute; left: 8px; top: 8px; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; background: rgba(28, 31, 36, 0.72); color: var(--chalk); pointer-events: none; }
+.ready { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(28, 31, 36, 0.94); cursor: pointer; z-index: 3; }
+.ready[hidden] { display: none; }
+.ready-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 24px; max-width: 560px; }
+.ready-round { color: var(--dim); font-weight: 600; }
+.ready-mode { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.6rem, 8vw, 4.4rem); text-transform: uppercase; line-height: 0.95; }
+.ready-focus { font-size: 1.1rem; }
+.ready-focus b { color: var(--blueline); font-weight: 600; }
+.ready-count { font-family: var(--font-display); font-weight: 800; font-size: 5rem; line-height: 1; color: var(--vermilion); font-variant-numeric: tabular-nums; min-height: 1em; }
+.ready-hint { color: var(--dim); font-size: 0.85rem; }
+.toolbar { display: flex; align-items: center; justify-content: center; gap: 10px 18px; padding: 10px 16px 14px; border-top: 1px solid var(--rule); flex-wrap: wrap; flex: 0 0 auto; }
+.tool-group { display: flex; gap: 6px; align-items: center; }
+.tool { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 64px; min-height: 52px; padding: 6px 8px; background: var(--slate-2); border: 1px solid var(--rule); border-radius: var(--radius); cursor: pointer; font-size: 0.75rem; font-weight: 600; }
+.tool svg { width: 22px; height: 22px; }
+.tool[aria-pressed="true"] { background: var(--vermilion); border-color: var(--vermilion); color: var(--vermilion-ink); }
+.swatch { width: 44px; height: 44px; border-radius: var(--radius); border: 2px solid var(--rule); cursor: pointer; position: relative; }
+.swatch[aria-pressed="true"] { outline: 3px solid var(--blueline); outline-offset: 2px; }
+.swatch span { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: var(--dim); white-space: nowrap; }
+.size-ctl { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--dim); }
+.size-ctl input { width: 120px; accent-color: var(--vermilion); }
+.size-dot { width: 30px; height: 30px; display: grid; place-items: center; }
+.size-dot i { display: block; border-radius: 50%; background: var(--chalk); }
+
+/* ---------- review ---------- */
+.review-main { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 16px; }
+.viewer { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.viewer-canvas { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; position: relative; }
+.viewer-canvas canvas { display: block; border-radius: 4px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); touch-action: none; }
+.viewer-canvas canvas.is-draggable { cursor: grab; }
+.viewer-controls { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; }
+.ctl { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--dim); }
+.ctl input[type="range"] { width: 120px; accent-color: var(--vermilion); }
+.coach { display: flex; flex-direction: column; gap: 14px; overflow-y: auto; min-height: 0; padding: 18px; background: var(--slate); border: 1px solid var(--rule); border-radius: var(--radius); }
+.coach h2 { font-size: 1.35rem; }
+.score-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.score-big { font-family: var(--font-display); font-weight: 800; font-size: 3.4rem; line-height: 0.9; font-variant-numeric: tabular-nums; }
+.score-big small { font-size: 1.4rem; color: var(--dim); }
+.crit { display: flex; flex-wrap: wrap; gap: 6px; }
+.crit span { display: inline-flex; gap: 6px; align-items: baseline; padding: 3px 8px; border-radius: 4px; background: var(--graphite); border: 1px solid var(--rule); font-size: 0.82rem; color: var(--dim); text-transform: capitalize; }
+.crit b { color: var(--chalk); font-variant-numeric: tabular-nums; }
+.crit .lo { border-color: var(--warn); }
+.fb-block { display: flex; flex-direction: column; gap: 2px; }
+.fb-block h3 { font-family: var(--font-body); font-weight: 600; font-size: 0.82rem; color: var(--dim); text-transform: none; letter-spacing: 0; }
+.fb-block p { font-size: 0.98rem; }
+.fb-block.fix { padding: 10px 12px; border-left: 3px solid var(--vermilion); background: var(--graphite); border-radius: 0 var(--radius) var(--radius) 0; }
+.fb-next { padding: 10px 12px; border: 1px solid var(--blueline); border-radius: var(--radius); }
+.fb-next h3 { color: var(--blueline); }
+.coach-note { font-size: 0.88rem; color: var(--dim); }
+.thinking { display: flex; align-items: center; gap: 10px; color: var(--dim); }
+.thinking i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--rule); border-top-color: var(--vermilion); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.coach-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+
+/* ---------- summary ---------- */
+#summary { overflow-y: auto; }
+.sum-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-top: 22px; }
+.sum-head h1 { font-size: clamp(2.4rem, 6vw, 4rem); text-transform: uppercase; line-height: 0.95; }
+.sum-head p { color: var(--dim); margin-top: 6px; }
+.thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.thumb { display: flex; flex-direction: column; gap: 6px; padding: 0; background: none; border: 0; text-align: left; cursor: pointer; }
+.thumb canvas { width: 100%; height: auto; display: block; border-radius: 4px; border: 2px solid transparent; }
+.thumb:hover canvas { border-color: var(--dim); }
+.thumb .t-cap { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--dim); }
+.thumb .t-cap b { color: var(--chalk); font-variant-numeric: tabular-nums; }
+.session-review { display: flex; flex-direction: column; gap: 12px; }
+.sum-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- dialog & toast ---------- */
+.dialog { position: fixed; inset: 0; background: rgba(10, 11, 13, 0.7); display: grid; place-items: center; z-index: 20; padding: 16px; }
+.dialog[hidden] { display: none; }
+.dialog-card { width: min(420px, 100%); background: var(--slate); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.dialog-card h2 { font-size: 1.4rem; }
+.dialog-card p { color: var(--dim); }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--chalk); color: var(--graphite); padding: 10px 16px; border-radius: var(--radius); font-weight: 600; z-index: 30; max-width: calc(100% - 32px); }
+.toast[hidden] { display: none; }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-demo { justify-self: start; width: min(100%, 300px); }
+  .modes { grid-template-columns: 1fr; }
+  .lower { grid-template-columns: 1fr; }
+  .review-main { grid-template-columns: 1fr; overflow-y: auto; }
+  .viewer-canvas { min-height: 55vh; }
+  .coach { overflow: visible; }
+}
+@media (max-width: 560px) {
+  .focus-card { grid-template-columns: 1fr; }
+  .focus-card .label, .focus-card .text, .focus-card .src, .focus-card .btn { grid-column: 1; grid-row: auto; }
+  .timer { font-size: 2.3rem; }
+  .tool { min-width: 54px; }
+  .size-ctl input { width: 90px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking i { animation: none; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <section id="home" class="screen is-active" aria-label="Start">
+    <div class="wrap">
+      <header class="top">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Quick Studies</div>
+        <div class="stats" id="stats"></div>
+      </header>
+
+      <div class="hero">
+        <div>
+          <h1>Draw the pose, not the details.</h1>
+          <p>Timed studies from a reference. When the clock runs out, your drawing lands on top of the reference so you can see what you missed, and the coach tells you what to fix in the next one.</p>
+        </div>
+        <figure class="hero-demo">
+          <canvas id="heroCanvas" width="750" height="1000" aria-label="A generated mannequin reference with its line of action drawn in red"></canvas>
+          <figcaption id="heroCap">Today's sample pose, with its line of action in red.</figcaption>
+        </figure>
+      </div>
+
+      <div class="focus-card" id="focusCard"></div>
+
+      <section class="setup" aria-labelledby="setupTitle">
+        <h2 id="setupTitle">Set up a session</h2>
+        <div class="modes" id="modeCards" role="radiogroup" aria-label="Mode"></div>
+        <div class="opts">
+          <div class="opt">
+            <span class="opt-label" id="lblTime">Time per drawing</span>
+            <div class="stepper" aria-labelledby="lblTime">
+              <button type="button" id="timeDown" aria-label="Less time">&minus;</button>
+              <output id="timeOut" aria-live="polite">15 s</output>
+              <button type="button" id="timeUp" aria-label="More time">+</button>
+            </div>
+          </div>
+          <div class="opt">
+            <span class="opt-label" id="lblSubject">Subject</span>
+            <div class="seg" id="segSubject" role="radiogroup" aria-labelledby="lblSubject"></div>
+          </div>
+          <div class="opt">
+            <span class="opt-label" id="lblSource">References</span>
+            <div class="seg" id="segSource" role="radiogroup" aria-labelledby="lblSource"></div>
+            <span class="opt-note" id="sourceNote"></span>
+          </div>
+          <div class="opt">
+            <span class="opt-label" id="lblRounds">Drawings</span>
+            <div class="seg" id="segRounds" role="radiogroup" aria-labelledby="lblRounds"></div>
+          </div>
+          <div class="opt">
+            <span class="opt-label">After each drawing</span>
+            <label class="toggle" for="reviewEach"><input type="checkbox" id="reviewEach"><span>Stop to compare and get feedback</span></label>
+          </div>
+        </div>
+        <div class="start-row">
+          <button class="btn btn-primary btn-start" id="startBtn" type="button">Start session</button>
+          <span class="opt-note" id="startNote"></span>
+        </div>
+      </section>
+
+      <div class="lower">
+        <section class="panel" aria-labelledby="refsTitle">
+          <div class="panel-head">
+            <h2 id="refsTitle">My references</h2>
+            <span class="opt-note" id="refCount"></span>
+          </div>
+          <p class="hint">Add your own photos or art references: characters, creatures, poses, environments. Tag each one so sessions can pick the right kind.</p>
+          <div class="upload-row">
+            <label class="sr" for="uploadCat">Tag new references as</label>
+            <select id="uploadCat">
+              <option value="movement">Tag as movement</option>
+              <option value="perspective">Tag as perspective</option>
+              <option value="other">Tag as other</option>
+            </select>
+            <button class="btn" type="button" id="uploadBtn">Add images</button>
+            <input type="file" id="fileInput" accept="image/*" multiple hidden>
+          </div>
+          <div class="drop" id="dropZone">Or drop image files here</div>
+          <div class="status" id="refStatus" role="status"></div>
+          <div class="ref-grid" id="refGrid"></div>
+        </section>
+        <section class="panel" aria-labelledby="histTitle">
+          <div class="panel-head"><h2 id="histTitle">Recent sessions</h2></div>
+          <ol class="history" id="historyList"></ol>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="draw" class="screen" aria-label="Drawing">
+    <header class="bar">
+      <div class="bar-left">
+        <button class="btn btn-ghost" type="button" id="quitBtn">Quit</button>
+        <div class="bar-title"><strong id="drawMode">Gesture</strong><span id="drawRound">Drawing 1 of 5</span></div>
+      </div>
+      <div class="bar-right">
+        <div class="timer" id="timer" aria-live="off">15</div>
+        <button class="btn" type="button" id="finishBtn">Done</button>
+      </div>
+    </header>
+    <div class="timebar" aria-hidden="true"><div id="timebarFill"></div></div>
+    <div class="stage" id="stage">
+      <div class="pane pane-ref" id="refPane"><img id="refImg" alt="Reference image"></div>
+      <div class="pane pane-canvas is-locked" id="canvasPane">
+        <canvas id="sketch" aria-label="Drawing canvas"></canvas>
+        <canvas id="preview" aria-hidden="true"></canvas>
+      </div>
+      <div class="ready" id="ready" hidden>
+        <div class="ready-inner">
+          <div class="ready-round" id="readyRound"></div>
+          <div class="ready-mode" id="readyMode"></div>
+          <div class="ready-focus" id="readyFocus"></div>
+          <div class="ready-count" id="readyCount"></div>
+          <div class="ready-hint" id="readyHint">Tap to start now</div>
+        </div>
+      </div>
+    </div>
+    <div class="toolbar" id="toolbar"></div>
+  </section>
+
+  <section id="review" class="screen" aria-label="Compare">
+    <header class="bar">
+      <div class="bar-left">
+        <button class="btn btn-ghost" type="button" id="reviewQuit">Quit</button>
+        <div class="bar-title"><strong id="reviewTitle">Time</strong><span id="reviewSub"></span></div>
+      </div>
+      <div class="bar-right">
+        <button class="btn btn-primary" type="button" id="nextBtn">Next drawing</button>
+      </div>
+    </header>
+    <div class="review-main">
+      <div class="viewer">
+        <div class="viewer-canvas" id="viewerBox"><canvas id="reviewCanvas" aria-label="Your drawing on top of the reference"></canvas></div>
+        <div class="viewer-controls">
+          <div class="seg" id="segView" role="radiogroup" aria-label="View"></div>
+          <div class="seg" id="segTint" role="radiogroup" aria-label="Drawing color"></div>
+          <label class="ctl" for="opacity">Drawing <input type="range" id="opacity" min="0" max="100" value="90"></label>
+          <label class="ctl" for="fadeRef"><input type="checkbox" id="fadeRef"> Fade reference</label>
+          <label class="ctl" for="alignScale">Size <input type="range" id="alignScale" min="60" max="140" value="100"></label>
+          <button class="btn btn-ghost" type="button" id="alignReset">Reset position</button>
+        </div>
+        <p class="coach-note" id="alignHint">Drag your drawing to line it up with the reference. Drawing at a different size is fine: use Size to match it.</p>
+      </div>
+      <aside class="coach" id="coach" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section id="summary" class="screen" aria-label="Results">
+    <div class="wrap">
+      <div class="sum-head">
+        <div>
+          <h1 id="sumTitle">Session done</h1>
+          <p id="sumSub"></p>
+        </div>
+        <div class="sum-actions">
+          <button class="btn" type="button" id="sumHome">Back to start</button>
+          <button class="btn btn-primary" type="button" id="sumAgain">Another session</button>
+        </div>
+      </div>
+      <section class="panel session-review" id="sessionReview" aria-live="polite"></section>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+  </section>
+</div>
+
+<div class="dialog" id="dialog" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dialog-card">
+    <h2 id="dlgTitle"></h2>
+    <p id="dlgBody"></p>
+    <div class="dialog-actions">
+      <button class="btn" type="button" id="dlgCancel">Cancel</button>
+      <button class="btn btn-primary" type="button" id="dlgOk">OK</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script src="three.min.js"></script>
+<script src="refs3d.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
