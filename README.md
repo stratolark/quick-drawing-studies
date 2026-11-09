@@ -41,7 +41,7 @@ Drawing improves fastest with short, deliberate practice every day. A short time
 There is no build step and nothing to install. Clone the repository and open `index.html` in a browser:
 
 ```bash
-git clone https://github.com/stratolark/quick-studies.git
+git clone https://github.com/stratolark/quick-drawing-studies.git
 ```
 
 You can also serve the folder with any static file server, for example:
