@@ -11,3 +11,11 @@ desktop.ini
 # Local tooling, for example when serving with npx
 node_modules/
 *.log
+
+# Build output
+dist/
+
+# Local secrets
+.env
+.claude
+.codex

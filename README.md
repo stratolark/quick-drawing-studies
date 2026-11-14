@@ -1,6 +1,6 @@
 # Quick Studies
 
-Timed drawing practice from a reference. Draw against the clock, then see your drawing laid over the reference so you can check what you missed.
+Structured drawing practice from a reference. Look at the reference first, draw it against the clock, see what drifted, fix it, then test yourself on a new reference to check that the fix carries over.
 
 **Try it:** [stratolark.dev/quick-studies](https://stratolark.dev/quick-studies/index.html) · [Project page](https://stratolark.dev/projects/quick-studies)
 
@@ -8,19 +8,24 @@ Timed drawing practice from a reference. Draw against the clock, then see your d
 
 ## Why
 
-Drawing improves fastest with short, deliberate practice every day. A short timer forces you to draw only what matters: the line of action, the big shapes and the negative space. Laying your drawing over the reference shows exactly where it drifted, so you know what to fix in the next one.
+Drawing improves with short, deliberate practice. Version 2 builds each session around one learning loop:
+
+1. **Observe.** Study the reference and mark its structure, such as the line of action, the horizon or the darkest shape.
+2. **Draw.** Draw it on a timer with no hints on screen.
+3. **Analyze.** The app measures what it can verify and names the single most important issue.
+4. **Correct.** Draw the same reference again with that one correction in mind, then compare before and after.
+5. **Transfer.** Draw a new, comparable reference without any help. Only these results count toward your progress.
 
 ## Features
 
-- **Three modes, each with its own tools.** You can change the time for each one.
-  - **Gesture, 15 seconds.** Pen only. Trains the line of action and movement.
-  - **Shapes, 30 seconds.** Lasso fill, lasso cut and pen. Trains big shapes and negative space.
-  - **Values, 60 seconds.** Three greys with a lasso and a brush, no lines. Trains light and dark in big shapes.
-- **Generated references.** Movement gives a posed artist's mannequin from a new angle each time. Perspective gives boxes, a city street, a still life or a row of columns. Everything is rendered in the browser with three.js.
-- **Your own references.** Add character, creature, pose or environment images and tag them, so a session picks the right kind.
-- **Compare.** When the time runs out, your drawing is laid over the reference in red. Drag it and resize it to line it up.
-- **Self-check.** Each mode gives a short list of what to look for before the next drawing.
-- **Progress.** Your day streak, drawings per day and recent sessions are saved in your browser.
+- **Three session types.** Quick (about 8 minutes), Focused (30 minutes) and Deep (45 minutes). You can turn stages on and off and change every duration under "Adjust stages".
+- **Skills in four tracks.** Gesture and movement, shape and proportion, form and perspective, and values and lighting. Each exercise trains one objective.
+- **Measured feedback.** The line of action, silhouette proportions and value placement are measured against geometry taken from the generated 3D scene. Every measurement shows its tolerance and its limits.
+- **Guidance levels.** Guided, Assisted and Independent. Suggested changes come only from your independent results, never from drawing counts.
+- **Construction guides.** Step-by-step overlays generated from the 3D scene, labelled as procedural guides rather than an artist's demonstration.
+- **Progress that keeps evidence apart.** Practice activity, assisted retries and independent tests are tracked separately. Small samples say "not enough evidence" instead of showing a trend.
+- **Optional AI coach.** An AI explanation can be requested through a small backend with a provider adapter. It is off until you opt in, and it never overrides the measurements.
+- **Timed studies.** The original quick-fire sessions are still there: Gesture (15 s), Shapes (30 s) and Values (60 s).
 - **Made for a stylus.** It reads pen pressure and ignores your palm while you draw with a pen.
 
 ![The drawing screen with a timer, a generated mannequin reference on the left and a blank canvas on the right](docs/drawing-screen.jpg)
@@ -38,31 +43,74 @@ Drawing improves fastest with short, deliberate practice every day. A short time
 
 ## Run it locally
 
-There is no build step and nothing to install. Clone the repository and open `index.html` in a browser:
+You need Node.js 22 or later.
 
 ```bash
 git clone https://github.com/stratolark/quick-drawing-studies.git
 ```
 
-You can also serve the folder with any static file server, for example:
-
 ```bash
-npx serve .
+cd quick-drawing-studies
 ```
 
-Fonts load from Google Fonts. Everything else, including three.js, is in the repository.
+```bash
+npm install
+```
+
+```bash
+npm run dev
+```
+
+Open the address Vite prints (by default `http://localhost:5173`). The app works fully without the AI coach.
+
+### Optional AI coach
+
+The coach runs as a separate Node server. The Vite dev server forwards `/api` to it.
+
+To try it without an API key, start the mock coach in a second terminal:
+
+```bash
+npm run server:mock
+```
+
+To use Claude, copy `env.example` to `.env`, set `ANTHROPIC_API_KEY` and `QS_COACH_PROVIDER=anthropic`, then run:
+
+```bash
+npm run server
+```
+
+The key stays on the server. The server listens on `127.0.0.1` by default and refuses to listen on any other address with a paid provider unless `QS_ACCESS_TOKEN` is set. It also enforces per-client rate limits, a daily spending budget, request size and image checks, and a timeout. In the app, turn on "Allow sending drawings to the AI coach" before asking for feedback.
+
+### Tests and build
+
+```bash
+npm test
+```
+
+```bash
+npm run build
+```
+
+The tests never call a paid model. `npm run build` writes a static site to `dist/` with relative paths, so it can be served from a sub-path. `npm run server` also serves `dist/` when it exists.
 
 ## How it works
 
-| File           | Contents                                                                 |
-| -------------- | ------------------------------------------------------------------------ |
-| `index.html`   | Layout and styles for the start, drawing, compare and summary screens    |
-| `app.js`       | Sessions, timer, drawing tools, comparison view, self-check and progress |
-| `refs3d.js`    | Generated references: the posed mannequin and the perspective scenes     |
-| `three.min.js` | [three.js](https://threejs.org/) r149, bundled so the app needs no CDN   |
+| Path                  | Contents                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------ |
+| `index.html`          | Markup for every screen                                                                    |
+| `src/app.js`          | Drawing canvas, tools, timer, compare view and the timed-studies flow                      |
+| `src/refs/`           | Generated references (three.js) and the projection helpers that record their geometry      |
+| `src/learning/`       | Curriculum, session state machine, progress and recommendations, versioned storage         |
+| `src/analysis/`       | Gesture, shape and value measurements, issue ranking, before-and-after comparison          |
+| `src/learn/`          | The V2 screens: observe, review, summary, progress, construction guides                    |
+| `src/coach/`          | AI coach contract (validation, sanitizing) and browser client                              |
+| `server/`             | Optional coach backend: guards, prompt, Claude and mock providers                          |
+| `test/`               | Unit and integration tests, plus a labelled feedback-quality dataset                       |
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the session state machine, the analysis pipeline, the data model, security and the known limitations.
 
 Progress is saved in your browser's local storage. Images you add as references last until you close the tab.
 
 ## License
 
-[MIT](LICENSE). three.js is © three.js authors and also MIT licensed. Its license header is kept at the top of `three.min.js`.
+[MIT](LICENSE). three.js is © three.js authors and also MIT licensed.

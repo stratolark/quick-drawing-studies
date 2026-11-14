@@ -1,54 +1,8 @@
 /* Quick Studies: timed drawing practice with overlay review and coach feedback. */
-(function () {
-  'use strict';
+import { QSRefs } from './refs/refs3d.js';
+import { $, el, clamp, pad2, todayKey, fmtDate, withTimeout, lsGet, lsSet, loadImg, toBlob, mkCanvas, shuffle, mid } from './util.js';
 
-  /* ---------- helpers ---------- */
-  const $ = (s, root) => (root || document).querySelector(s);
-  function el(tag, props, ...kids) {
-    const n = document.createElement(tag);
-    if (props) {
-      for (const [k, v] of Object.entries(props)) {
-        if (v == null || v === false) continue;
-        if (k === 'class') n.className = v;
-        else if (k === 'text') n.textContent = v;
-        else if (k === 'html') n.innerHTML = v;
-        else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
-        else if (k === 'style') n.style.cssText = v;
-        else n.setAttribute(k, v === true ? '' : String(v));
-      }
-    }
-    for (const k of kids.flat()) {
-      if (k == null || k === false) continue;
-      n.append(k.nodeType ? k : document.createTextNode(String(k)));
-    }
-    return n;
-  }
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const pad2 = n => String(n).padStart(2, '0');
-  const todayKey = d => { d = d || new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
-  function fmtDate(key) {
-    const p = String(key || '').split('-').map(Number);
-    if (p.length !== 3 || p.some(isNaN)) return '';
-    return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
-  }
-  function withTimeout(p, ms) {
-    let t;
-    return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej({ code: 'timeout' }), ms); })]).finally(() => clearTimeout(t));
-  }
-  function lsGet(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
-  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
-  function loadImg(src) {
-    return new Promise((res, rej) => {
-      const i = new Image();
-      i.onload = () => res(i);
-      i.onerror = () => rej(new Error('image'));
-      i.src = src;
-    });
-  }
-  function toBlob(canvas, type, q) { return new Promise(res => canvas.toBlob(b => res(b), type || 'image/jpeg', q || 0.88)); }
-  function mkCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
-  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
-  const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+export function startApp() {
 
   /* ---------- constants ---------- */
   const INK = '#1d1f24';
@@ -146,7 +100,7 @@
   }
 
   const AI = { sample: null, maxImages: 0, off: false };
-  const canGenerate = () => !!(window.QSRefs && window.QSRefs.supported());
+  const canGenerate = () => !!(QSRefs && QSRefs.supported());
 
   /* ---------- storage: this browser, or a remote store when Store.db is set ---------- */
   let writeChain = Promise.resolve();
@@ -200,18 +154,6 @@
       chip(S.profile.total || 0, 'all time')
     );
   }
-  function renderFocus() {
-    const p = S.profile;
-    const f = p.focus;
-    const suggest = f && p.focusMode && p.focusMode !== S.settings.mode;
-    const kids = [
-      el('span', { class: 'label', text: f ? "Today's focus" : 'Start here' }),
-      el('span', { class: 'text', text: f || 'Do one Gesture session: 15 seconds per pose, one line of action before anything else.' }),
-      el('span', { class: 'src', text: f ? 'Set by the coach after your session' + (p.focusDate ? ' on ' + fmtDate(p.focusDate) : '') + '.' : 'After each session the coach can set a focus for the next one.' }),
-    ];
-    if (suggest) kids.push(el('button', { class: 'btn', type: 'button', text: 'Switch to ' + MODES[p.focusMode].name, onclick: () => { S.settings.mode = p.focusMode; saveSettings(); renderSetup(); renderFocus(); } }));
-    $('#focusCard').replaceChildren(...kids);
-  }
   function seg(box, opts, cur, onPick) {
     box.replaceChildren(...opts.map(([v, label]) => el('button', { type: 'button', role: 'radio', 'aria-checked': String(v === cur), text: label, onclick: () => onPick(v) })));
   }
@@ -220,7 +162,7 @@
     const st = S.settings;
     $('#modeCards').replaceChildren(...Object.entries(MODES).map(([id, M]) => el('button', {
       class: 'mode-card', type: 'button', role: 'radio', 'aria-checked': String(id === st.mode),
-      onclick: () => { st.mode = id; saveSettings(); renderSetup(); renderFocus(); },
+      onclick: () => { st.mode = id; saveSettings(); renderSetup(); },
     },
     el('span', { class: 'm-name', text: M.name }),
     el('span', { class: 'm-time', text: st.secs[id] + ' s' }),
@@ -245,16 +187,8 @@
       ? 'The coach runs only when you ask for feedback.'
       : 'When the time runs out, your drawing is laid over the reference.';
   }
-  function renderHistory() {
-    const list = $('#historyList');
-    if (!S.history.length) { list.replaceChildren(el('li', { class: 'empty', text: 'Finished sessions show up here with their scores.' })); return; }
-    list.replaceChildren(...S.history.slice(0, 8).map(h => el('li', null,
-      el('span', { class: 'h-main', text: (MODES[h.mode] ? MODES[h.mode].name : 'Session') + ', ' + h.count + ' × ' + h.secs + ' s' }),
-      el('span', { class: 'h-sub', text: [fmtDate(h.date), subjectLabel(h.subject), h.review && h.review.tomorrow ? 'Next: ' + h.review.tomorrow : ''].filter(Boolean).join(' · ') }),
-      el('span', { class: 'h-score', title: 'Average coach score out of 5', text: typeof h.avg === 'number' ? h.avg.toFixed(1) : '' })
-    )));
-  }
-  function renderHome() { renderStats(); renderFocus(); renderSetup(); renderRefs(); renderHistory(); }
+  const homeHooks = [];
+  function renderHome() { renderStats(); renderSetup(); renderRefs(); for (const fn of homeHooks) fn(); }
 
   /* ---------- my references ---------- */
   function setRefStatus(msg, isErr) { const s = $('#refStatus'); s.textContent = msg || ''; s.classList.toggle('is-error', !!isErr); }
@@ -652,10 +586,19 @@
       if (!gen) { const any = takeMine(ss, 'mixed'); if (any) return any; throw new Error('no-refs'); }
     }
     const seed = (Math.random() * 4294967296) >>> 0;
-    const g = await window.QSRefs.generate(subj, seed);
+    const g = await QSRefs.generate(subj, seed);
     return { source: 'generated', url: g.url, w: g.w, h: g.h, label: 'Generated ' + g.label.charAt(0).toLowerCase() + g.label.slice(1), objectUrl: true };
   }
   function showReady(ss, round, loading) {
+    if (ss.v2) {
+      $('#readyRound').textContent = ss.ready.round;
+      $('#readyMode').textContent = ss.ready.mode;
+      $('#readyFocus').replaceChildren(...(ss.ready.focus ? [el('b', { text: ss.ready.focusLabel || 'Focus: ' }), ss.ready.focus] : []));
+      $('#readyCount').textContent = '';
+      $('#readyHint').textContent = loading ? 'Preparing the reference…' : 'Tap to start now';
+      readyEl.hidden = false;
+      return;
+    }
     $('#readyRound').textContent = 'Drawing ' + (ss.idx + 1) + ' of ' + ss.total;
     $('#readyMode').textContent = MODES[ss.mode].name + ', ' + ss.secs + ' s';
     const focus = (round && round.focus) || ss.focus;
@@ -737,6 +680,8 @@
     round.drawing = sketch.snapshot();
     round.empty = sketch.isEmpty();
     round.used = Math.min(ss.secs, (performance.now() - (round.startedAt || performance.now())) / 1000);
+    round.strokes = sketch.strokes.slice();
+    if (ss.onRoundEnd) { ss.onRoundEnd(round); return; }
     if (ss.reviewEach) openReview(round, 'session');
     else {
       timerEl.textContent = 'Time';
@@ -745,6 +690,7 @@
   }
   async function quitPrompt() {
     const ss = S.session;
+    if (ss && ss.onQuit) { ss.onQuit(); return; }
     if (!ss) { show('home'); return; }
     const drawing = $('#draw').classList.contains('is-active') && ss.cur && !ss.cur.drawing && readyEl.hidden;
     if (drawing) { Timer.pause(); sketch.lock(true); }
@@ -759,6 +705,57 @@
     ss.endedEarly = true;
     if (done) finishSession();
     else { ss.ended = true; cleanupSession(ss); S.session = null; readyEl.hidden = true; show('home'); renderHome(); }
+  }
+
+  /* ---------- V2 attempts: the learning flow drives the same drawing screen ---------- */
+  const REF_LONG_SIDE = 1000;
+  function canvasSizeFor(ref) {
+    return ref.w >= ref.h ? [REF_LONG_SIDE, Math.round(REF_LONG_SIDE * ref.h / ref.w)] : [Math.round(REF_LONG_SIDE * ref.w / ref.h), REF_LONG_SIDE];
+  }
+  /* ss: { v2: true, mode, secs, ready: {round, mode, focus}, onRoundEnd, onQuit }. Resolves when drawing starts. */
+  async function startV2Attempt(ss, ref, img, labels) {
+    S.session = ss;
+    ss.ended = false;
+    ss.rounds = ss.rounds || [];
+    show('draw');
+    $('#drawMode').textContent = labels.title;
+    $('#drawRound').textContent = labels.sub || '';
+    const badge = $('#drawBadge');
+    badge.textContent = labels.badge || '';
+    badge.hidden = !labels.badge;
+    $('#pauseBtn').hidden = !ss.onPause;
+    $('#pauseBtn').textContent = 'Pause';
+    setTimerDisplay(ss.secs * 1000, ss.secs * 1000);
+    sketch.lock(true);
+    canvasPane.classList.add('is-locked');
+    const [cw, ch] = canvasSizeFor(ref);
+    const round = { n: ss.rounds.length + 1, mode: ss.mode, secs: ss.secs, ref, refImg: img, cw, ch, drawing: null, tinted: null, align: { dx: 0, dy: 0, s: 1 }, feedback: null, focus: '', used: 0, empty: true };
+    ss.rounds.push(round);
+    ss.cur = round;
+    refImgEl.src = ref.url;
+    refImgEl.alt = 'Reference: ' + ref.label;
+    setupToolbar(ss.mode);
+    sketch.setup(cw, ch, ss.mode);
+    applyToolState(ss.mode);
+    layoutStage();
+    showReady(ss, round, false);
+    await countdown(ss);
+    if (S.session !== ss || ss.ended) return null;
+    beginDrawing(ss, round);
+    return round;
+  }
+  function pauseV2(ss, paused) {
+    if (paused) { Timer.pause(); sketch.lock(true); canvasPane.classList.add('is-locked'); }
+    else { sketch.lock(false); canvasPane.classList.remove('is-locked'); Timer.resume(); }
+    $('#pauseBtn').textContent = paused ? 'Resume' : 'Pause';
+  }
+  function stopDrawing() { Timer.stop(); sketch.lock(true); readyEl.hidden = true; }
+  function recordDrawings(n) {
+    if (!n) return;
+    const day = todayKey();
+    S.profile.days[day] = (S.profile.days[day] || 0) + n;
+    S.profile.total = (S.profile.total || 0) + n;
+    queueWrite(() => Store.saveProfile(S.profile)).catch(() => {});
   }
 
   /* ---------- review ---------- */
@@ -828,12 +825,14 @@
     rc.style.height = Math.floor(H * scale) + 'px';
     rc.classList.toggle('is-draggable', o.view === 'overlay');
     compose(rc.getContext('2d'), r, o, layout, gap);
+    if (r.annotate) r.annotate(rc.getContext('2d'), { layout, gap, view: o.view });
   }
   function recompose() {
     const v = S.view; if (!v) return;
     const g = rc.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0);
     compose(g, v.round, v.o, v.layout, v.gap);
+    if (v.round.annotate) v.round.annotate(g, { layout: v.layout, gap: v.gap, view: v.o.view });
   }
   let drag = null;
   rc.addEventListener('pointerdown', e => {
@@ -884,14 +883,17 @@
     const last = ss && ss.idx + 1 >= ss.total;
     $('#nextBtn').textContent = from === 'summary' ? 'Back to results' : last ? 'See results' : 'Next drawing';
     $('#reviewQuit').hidden = from === 'summary';
+    $('#nextBtn').className = 'btn btn-primary';
     renderViewControls();
     show('review');
+    $('#annotCtl').hidden = true;
+    if (round.onReview) { round.onReview(from); return; }
     renderCoach(round);
     if (from === 'session' && S.settings.autoFeedback && aiReady() && !round.empty && !round.feedback && !round.fbPending) requestFeedback(round);
   }
   $('#nextBtn').addEventListener('click', () => {
     const v = S.view;
-    if (v && v.round.ctl && v.from === 'session') { /* let a running request finish in the background */ }
+    if (v && v.round.onNext) { v.round.onNext(v.from); return; }
     if (v && v.from === 'summary') { show('summary'); renderSummary(); return; }
     nextRound();
   });
@@ -1200,7 +1202,7 @@
     if (!canGenerate()) { $('#heroCap').textContent = 'This browser cannot draw generated references. Your own images still work.'; return; }
     try {
       const day = Math.floor(Date.now() / 86400000);
-      const ref = await window.QSRefs.generate('movement', day * 7919 + 11, { aspect: 'portrait' });
+      const ref = await QSRefs.generate('movement', day * 7919 + 11, { aspect: 'portrait' });
       const img = await loadImg(ref.url);
       c.width = ref.w; c.height = ref.h;
       g.drawImage(img, 0, 0);
@@ -1251,6 +1253,16 @@
     });
   });
 
+  $('#pauseBtn').addEventListener('click', () => { const ss = S.session; if (ss && ss.onPause) ss.onPause(); });
+
   renderHome();
   heroDemo();
-})();
+
+  return {
+    S, MODES, sketch, Store, QSRefs,
+    show, toast, confirmDialog, canGenerate, seg,
+    startV2Attempt, pauseV2, stopDrawing, recordDrawings, canvasSizeFor,
+    openReview, renderReviewCanvas, recompose, compose, thumbCanvas, OVERLAY_OPTS,
+    renderHome, onHome: fn => homeHooks.push(fn),
+  };
+}

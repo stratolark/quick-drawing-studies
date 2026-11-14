@@ -1,11 +1,10 @@
 /* Generated reference images for Quick Studies.
    Movement: a posed artist's mannequin. Perspective: boxes, a street, a still life or a colonnade.
    Everything is rendered in the page with three.js and returned as a JPEG blob. */
-(function () {
-  'use strict';
-  const T = window.THREE;
-  if (!T) { window.QSRefs = { supported: () => false, generate: () => Promise.reject(new Error('three')) }; return; }
-  if (T.ColorManagement) T.ColorManagement.legacyMode = false;
+import * as T from 'three';
+import { toPx, vanishingPoint, horizon, projectedRadius, lightSide, cameraMeta, maskBBox, REF_COORDINATE_SYSTEM } from './projection.js';
+
+if (T.ColorManagement) T.ColorManagement.legacyMode = false;
 
   const D = Math.PI / 180;
   const DOWN = new T.Vector3(0, -1, 0);
@@ -143,6 +142,10 @@
       aL: { d: [0.3, -0.85, -0.45], b: 8 }, aR: { d: [0.35, -0.85, -0.4], b: 8 },
       lL: { d: [0.18, -0.05, 1], b: 115 }, lR: { d: [0.12, 0.2, 1], b: 60 } },
   ];
+
+  /* Rough pose complexity, used to pick comparable transfer references. A judgment call, not a validated scale (2026-11-14). */
+  const POSE_TIER = { sit: 1, reach: 1, crouch: 1, lunge: 1, push: 1, pull: 1, sprint: 2, jump: 2, kick: 2, 'look back': 2, punch: 2, stumble: 2, leap: 3, throw: 3, arabesque: 3 };
+  export const POSE_TIERS = [1, 2, 3];
 
   function aim(g, d, s, rng, jit) {
     const v = new T.Vector3(
@@ -292,7 +295,10 @@
     const jmat = new T.MeshStandardMaterial({ color: 0x8b837a, roughness: 0.55, metalness: 0 });
     const J = buildFigure(mat, jmat);
     scene.add(J.root);
-    const P = pick(rng, POSES);
+    let pool = POSES;
+    if (opts && opts.tier) pool = pool.filter(p => POSE_TIER[p.name] === opts.tier);
+    if (opts && opts.excludePose) { const rest = pool.filter(p => p.name !== opts.excludePose); if (rest.length) pool = rest; }
+    const P = pick(rng, pool);
     const mirror = rng() < 0.5;
     applyPose(J, P, rng, mirror);
     const box = groundFigure(J, (P.lift || 0) * R(rng, 0.85, 1.15));
@@ -322,19 +328,44 @@
     const side = rng() < 0.5 ? -1 : 1;
     keyLight(scene, rng, center, az + side * R(rng, 35, 80) * D, { intensity: 1.45, spread: 2.6, dist: 7 });
 
+    // Everything here is read from the posed joints after rendering, with the same camera, so it matches the image.
     const after = () => {
-      // Line of action: head, chest, pelvis, then the leg that reaches farthest.
+      J.root.updateMatrixWorld(true);
       const wp = (g, x, y, z) => g.localToWorld(new T.Vector3(x, y, z));
+      const px = p => toPx(cam, p, w, h);
+      // Line of action: head, chest, pelvis, then the leg that reaches farthest.
       const chainTop = [wp(J.head, 0, 0.2, 0), wp(J.neck, 0, 0, 0), wp(J.chest, 0, 0.12, 0), wp(J.root, 0, -0.02, 0)];
       const legs = ['L', 'R'].map(k => [wp(J['kn' + k], 0, 0, 0), wp(J['an' + k], 0, -0.03, 0.04)]);
-      const toPx = p => { const v = p.clone().project(cam); return [(v.x + 1) / 2 * w, (1 - v.y) / 2 * h]; };
-      const top2 = chainTop.map(toPx);
+      const top2 = chainTop.map(px);
       const pelvis = top2[3];
-      const reach = legs.map(L => { const a = toPx(L[1]); return Math.hypot(a[0] - pelvis[0], a[1] - pelvis[1]); });
-      const leg = legs[reach[0] >= reach[1] ? 0 : 1].map(toPx);
-      return { actionLine: top2.concat(leg) };
+      const reach = legs.map(L => { const a = px(L[1]); return Math.hypot(a[0] - pelvis[0], a[1] - pelvis[1]); });
+      const leg = legs[reach[0] >= reach[1] ? 0 : 1].map(px);
+      const masses = {
+        head: [wp(J.head, 0, 0.11, 0.008), 0.1],
+        chest: [wp(J.chest, 0, 0.14, 0), 0.17],
+        pelvis: [wp(J.root, 0, -0.02, 0), 0.14],
+      };
+      const landmarks = {};
+      for (const [k, [p]] of Object.entries(masses)) landmarks[k] = px(p);
+      landmarks.neck = px(wp(J.neck, 0, 0, 0));
+      for (const s of ['L', 'R']) {
+        landmarks['shoulder' + s] = px(wp(J['sh' + s], 0, 0, 0));
+        landmarks['elbow' + s] = px(wp(J['el' + s], 0, 0, 0));
+        landmarks['wrist' + s] = px(wp(J['wr' + s], 0, 0, 0));
+        landmarks['hand' + s] = px(wp(J['wr' + s], 0, -0.12, 0));
+        landmarks['hip' + s] = px(wp(J['hp' + s], 0, 0, 0));
+        landmarks['knee' + s] = px(wp(J['kn' + s], 0, 0, 0));
+        landmarks['ankle' + s] = px(wp(J['an' + s], 0, -0.03, 0.04));
+      }
+      const massRadii = {};
+      for (const [k, [p, r]] of Object.entries(masses)) massRadii[k] = projectedRadius(cam, p, r, w, h);
+      return { actionLine: top2.concat(leg), landmarks, massRadii, actionLeg: reach[0] >= reach[1] ? 'L' : 'R' };
     };
-    return { scene, camera: cam, w, h, label: 'Mannequin, ' + P.name + ' pose', after };
+    return {
+      scene, camera: cam, w, h, label: 'Mannequin, ' + P.name + ' pose', after,
+      silhouetteRoot: J.root, hide: [ground],
+      difficulty: { tier: POSE_TIER[P.name], pose: P.name, cameraElevationDeg: el / D, cameraAzimuthDeg: az / D },
+    };
   }
 
   /* ---------- perspective scenes ---------- */
@@ -373,13 +404,14 @@
     const aligned = rng() < 0.55;
     const baseYaw = R(rng, 0.15, 1.4);
     const placed = [];
+    const boxes = [];
     for (let i = 0; i < n; i++) {
       let w = R(rng, 0.6, 2.2), h = R(rng, 0.5, 2.4), d = R(rng, 0.6, 2.2);
       const yaw = aligned ? baseYaw : R(rng, 0, Math.PI);
       if (placed.length && rng() < 0.3) {
         const p = pick(rng, placed);
         w = Math.min(w, p.w * 0.8); d = Math.min(d, p.d * 0.8); h = Math.min(h, 1.4);
-        addBox(scene, mat, w, h, d, p.x + R(rng, -0.15, 0.15), p.top + h / 2, p.z + R(rng, -0.15, 0.15), aligned ? yaw : R(rng, 0, Math.PI));
+        boxes.push(addBox(scene, mat, w, h, d, p.x + R(rng, -0.15, 0.15), p.top + h / 2, p.z + R(rng, -0.15, 0.15), aligned ? yaw : R(rng, 0, Math.PI)));
         p.top += h;
         continue;
       }
@@ -390,7 +422,7 @@
         ok = placed.every(p => Math.hypot(p.x - x, p.z - z) > (p.r + r) * 0.95);
       }
       if (!ok) continue;
-      addBox(scene, mat, w, h, d, x, h / 2, z, yaw);
+      boxes.push(addBox(scene, mat, w, h, d, x, h / 2, z, yaw));
       placed.push({ x, z, w, d, r, top: h });
     }
     const view = pick(rng, ['worm', 'eye', 'eye', 'high']);
@@ -403,7 +435,20 @@
     scene.add(new T.HemisphereLight(0xffffff, 0x6f757e, 0.38));
     keyLight(scene, rng, new T.Vector3(0, 0, 0), az + (rng() < 0.5 ? -1 : 1) * R(rng, 40, 90) * D, { intensity: 1.0, spread: 7, dist: 14, el: [35, 60] });
     const names = { worm: "worm's-eye view", eye: 'eye level', high: "bird's-eye view" };
-    return { scene, camera: cam, w: 1000, h: 750, label: 'Boxes, ' + names[view] + (aligned ? ', two-point perspective' : ', mixed angles') };
+    const W = 1000, H = 750;
+    const after = () => {
+      const forms = boxes.map(m => {
+        m.updateMatrixWorld(true);
+        m.geometry.computeBoundingBox();
+        return { type: 'box', corners: boxCorners(m.geometry.boundingBox).map(c => toPx(cam, m.localToWorld(c), W, H)) };
+      });
+      // Aligned boxes share two horizontal edge directions, so they have two real vanishing points.
+      const vps = aligned
+        ? [vanishingPoint(cam, new T.Vector3(Math.cos(baseYaw), 0, -Math.sin(baseYaw)), W, H), vanishingPoint(cam, new T.Vector3(Math.sin(baseYaw), 0, Math.cos(baseYaw)), W, H)].filter(Boolean)
+        : [];
+      return { forms, vanishingPoints: vps, perspective: aligned ? 'two-point' : 'mixed' };
+    };
+    return { scene, camera: cam, w: W, h: H, label: 'Boxes, ' + names[view] + (aligned ? ', two-point perspective' : ', mixed angles'), after, difficulty: { tier: aligned ? 1 : 2, view } };
   }
 
   function streetScene(rng) {
@@ -453,7 +498,8 @@
     const sunAz = (rng() < 0.5 ? 1 : -1) * R(rng, 50, 120) * D;
     keyLight(scene, rng, new T.Vector3(0, 0, -25), sunAz, { intensity: 1.0, spread: 45, dist: 70, el: [30, 55], map: 2048 });
     const names = { eye: 'eye level', low: 'low angle', high: 'high angle' };
-    return { scene, camera: cam, w: 1000, h: 750, label: 'City street, ' + names[view] };
+    const after = () => ({ vanishingPoints: [vanishingPoint(cam, new T.Vector3(0, 0, -1), 1000, 750)].filter(Boolean), perspective: 'one-point' });
+    return { scene, camera: cam, w: 1000, h: 750, label: 'City street, ' + names[view], after, difficulty: { tier: 2, view } };
   }
 
   function stillLifeScene(rng) {
@@ -507,7 +553,7 @@
     scene.add(new T.HemisphereLight(0xffffff, 0x666c75, 0.3));
     const lAz = Math.max(-75 * D, Math.min(75 * D, az + (rng() < 0.5 ? -1 : 1) * R(rng, 40, 70) * D));
     keyLight(scene, rng, new T.Vector3(0, 0.3, 0), lAz, { intensity: 1.1, spread: 3, dist: 8, el: [35, 60] });
-    return { scene, camera: cam, w: 1000, h: 750, label: 'Still life of simple forms, strong side light' };
+    return { scene, camera: cam, w: 1000, h: 750, label: 'Still life of simple forms, strong side light', difficulty: { tier: 1, view: 'table' } };
   }
 
   function colonnadeScene(rng) {
@@ -544,7 +590,8 @@
     scene.add(new T.HemisphereLight(0xffffff, 0x6f757e, 0.4));
     keyLight(scene, rng, new T.Vector3(0, 0, -14), (rng() < 0.5 ? 1 : -1) * R(rng, 60, 110) * D, { intensity: 1.05, spread: 30, dist: 50, el: [22, 42] });
     const names = { center: 'one-point perspective', diagonal: 'two-point perspective', high: 'high angle' };
-    return { scene, camera: cam, w: 1000, h: 750, label: 'Colonnade, ' + names[view] };
+    const after = () => ({ vanishingPoints: [vanishingPoint(cam, new T.Vector3(0, 0, -1), 1000, 750)].filter(Boolean), perspective: view === 'diagonal' ? 'two-point' : 'one-point' });
+    return { scene, camera: cam, w: 1000, h: 750, label: 'Colonnade, ' + names[view], after, difficulty: { tier: view === 'center' ? 1 : 2, view } };
   }
 
   /* ---------- render ---------- */
@@ -556,6 +603,49 @@
     });
   }
 
+  /* Bump when a change to the generators would make the same seed produce a different image (2026-11-14). */
+  export const GENERATOR_VERSION = 'refs3d-2';
+  export const REF_META_VERSION = 1;
+  export const PERSPECTIVE_SCENES = ['boxes', 'street', 'still', 'colonnade'];
+  /* The silhouette mask is rendered at a quarter of the image size: fine enough for proportion checks, cheap to scan. */
+  const MASK_DOWNSCALE = 4;
+
+  function renderSilhouette(r, built) {
+    const s = built.scene;
+    const mw = Math.max(1, Math.round(built.w / MASK_DOWNSCALE)), mh = Math.max(1, Math.round(built.h / MASK_DOWNSCALE));
+    const prevBg = s.background;
+    const hidden = (built.hide || []).map(o => [o, o.visible]);
+    for (const [o] of hidden) o.visible = false;
+    const flat = new T.MeshBasicMaterial({ color: 0x000000 });
+    s.background = new T.Color(0xffffff);
+    s.overrideMaterial = flat;
+    r.setSize(mw, mh, false);
+    r.render(s, built.camera);
+    const c = document.createElement('canvas');
+    c.width = mw; c.height = mh;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(r.domElement, 0, 0);
+    const d = g.getImageData(0, 0, mw, mh).data;
+    const mask = new Uint8Array(mw * mh);
+    for (let i = 0; i < mask.length; i++) mask[i] = d[i * 4] < 128 ? 1 : 0;
+    s.overrideMaterial = null;
+    s.background = prevBg;
+    for (const [o, v] of hidden) o.visible = v;
+    flat.dispose();
+    return { mask, w: mw, h: mh, sx: built.w / mw, sy: built.h / mh };
+  }
+
+  function keyLightOf(scene) {
+    let key = null;
+    scene.traverse(o => { if (!key && o.isDirectionalLight && o.castShadow) key = o; });
+    return key;
+  }
+
+  function referenceId(kind, scene, seed, opts) {
+    const o = opts || {};
+    return ['gen', GENERATOR_VERSION, kind, scene, seed >>> 0, o.tier || 'any', o.excludePose || '-'].join(':');
+  }
+
   async function generate(kind, seed, opts) {
     const r = getRenderer();
     if (!r) throw new Error('webgl');
@@ -564,20 +654,46 @@
     let scene = 'figure';
     if (kind === 'movement') built = figureScene(rng, opts);
     else {
-      scene = pick(rng, ['boxes', 'street', 'still', 'colonnade']);
+      const picked = pick(rng, PERSPECTIVE_SCENES);
+      scene = opts && PERSPECTIVE_SCENES.includes(opts.scene) ? opts.scene : picked;
       built = scene === 'boxes' ? boxesScene(rng) : scene === 'street' ? streetScene(rng) : scene === 'still' ? stillLifeScene(rng) : colonnadeScene(rng);
     }
     const cam = built.camera;
     cam.aspect = built.w / built.h;
     cam.updateProjectionMatrix();
+    cam.updateMatrixWorld(true);
     r.setSize(built.w, built.h, false);
     r.render(built.scene, cam);
     const blob = await new Promise(res => r.domElement.toBlob(b => res(b), 'image/jpeg', 0.9));
     const extra = built.after ? built.after() : {};
+    const W = built.w, H = built.h;
+    const geometry = Object.assign({ coordinateSystem: REF_COORDINATE_SYSTEM, width: W, height: H }, extra);
+    const hz = horizon(cam, W, H);
+    if (hz) geometry.horizon = hz;
+    const key = keyLightOf(built.scene);
+    if (key) geometry.light = lightSide(cam, key.position, key.target.position);
+    let silhouetteMask = null;
+    if (built.silhouetteRoot) {
+      silhouetteMask = renderSilhouette(r, built);
+      const bb = maskBBox(silhouetteMask.mask, silhouetteMask.w, silhouetteMask.h, silhouetteMask.sx, silhouetteMask.sy);
+      geometry.silhouette = { bbox: bb, maskWidth: silhouetteMask.w, maskHeight: silhouetteMask.h };
+    }
     disposeScene(built.scene);
     if (!blob) throw new Error('render');
-    return Object.assign({ kind, scene, seed, label: built.label, blob, url: URL.createObjectURL(blob), w: built.w, h: built.h }, extra);
+    const meta = {
+      metaVersion: REF_META_VERSION,
+      id: referenceId(kind, scene, seed, opts),
+      source: 'generated',
+      generator: GENERATOR_VERSION,
+      kind, scene, seed: seed >>> 0,
+      options: opts ? { tier: opts.tier || null, excludePose: opts.excludePose || null, scene: opts.scene || null } : null,
+      width: W, height: H,
+      label: built.label,
+      difficulty: built.difficulty || null,
+      camera: cameraMeta(cam, W, H),
+      geometry,
+    };
+    return { kind, scene, seed, label: built.label, blob, url: URL.createObjectURL(blob), w: W, h: H, actionLine: extra.actionLine, meta, silhouetteMask };
   }
 
-  window.QSRefs = { supported: () => !!getRenderer(), generate };
-})();
+export const QSRefs = { supported: () => !!getRenderer(), generate };
