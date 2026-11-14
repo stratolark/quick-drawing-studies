@@ -694,6 +694,26 @@ select {
   gap: 10px;
 }
 
+.free-ctl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.trace-ctl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+.trace-ctl input {
+  width: 110px;
+}
+
 .timer {
   font-family: var(--font-display);
   font-weight: 800;
@@ -771,6 +791,17 @@ select {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+}
+
+.pane .trace-img {
+  position: absolute;
+  inset: 0;
+  opacity: var(--trace-opacity, 0.35);
+  pointer-events: none;
+}
+
+.stage.is-trace .pane-ref {
+  display: none;
 }
 
 #preview {

@@ -69,6 +69,36 @@
             </div>
           </section>
 
+          <section class="setup" aria-labelledby="freeTitle">
+            <h2 id="freeTitle">Free practice</h2>
+            <p class="hint">
+              No timer and no scores. Draw as many generated poses or objects as you like, next to the reference or
+              traced over it.
+            </p>
+            <div class="opts">
+              <div class="opt">
+                <span class="opt-label" id="lblFreeSubject">Subject</span>
+                <div class="seg" id="segFreeSubject" role="radiogroup" aria-labelledby="lblFreeSubject"></div>
+              </div>
+              <div class="opt">
+                <span class="opt-label" id="lblFreeVariant"></span>
+                <div class="seg" id="segFreeVariant" role="radiogroup" aria-labelledby="lblFreeVariant"></div>
+              </div>
+              <div class="opt">
+                <span class="opt-label" id="lblFreeView">View</span>
+                <div class="seg" id="segFreeView" role="radiogroup" aria-labelledby="lblFreeView"></div>
+              </div>
+              <div class="opt">
+                <span class="opt-label" id="lblFreeTools">Tools</span>
+                <div class="seg" id="segFreeTools" role="radiogroup" aria-labelledby="lblFreeTools"></div>
+              </div>
+            </div>
+            <div class="start-row">
+              <button class="btn btn-start" id="freeStart" type="button">Start free practice</button>
+              <span class="opt-note" id="freeNote"></span>
+            </div>
+          </section>
+
           <section class="setup" aria-labelledby="setupTitle">
             <h2 id="setupTitle">Timed studies</h2>
             <p class="hint">The original quick-fire sessions: several timed drawings in a row, compared one by one.</p>
@@ -153,6 +183,13 @@
             </div>
           </div>
           <div class="bar-right">
+            <div class="free-ctl" id="freeCtl" hidden>
+              <div class="seg" id="segDrawView" role="radiogroup" aria-label="View"></div>
+              <label class="trace-ctl" id="traceCtl" for="traceOpacity"
+                >Reference<input type="range" id="traceOpacity" min="10" max="80" step="5"
+              /></label>
+              <button class="btn" type="button" id="freeNext">New pose</button>
+            </div>
             <span class="badge" id="drawBadge" hidden></span>
             <button class="btn btn-ghost" type="button" id="pauseBtn" hidden>Pause</button>
             <div class="timer" id="timer" aria-live="off">15</div>
@@ -163,6 +200,7 @@
         <div class="stage" id="stage">
           <div class="pane pane-ref" id="refPane"><img id="refImg" alt="Reference image" /></div>
           <div class="pane pane-canvas is-locked" id="canvasPane">
+            <img class="trace-img" id="traceImg" alt="" hidden />
             <canvas id="sketch" aria-label="Drawing canvas"></canvas>
             <canvas id="preview" aria-hidden="true"></canvas>
           </div>

@@ -7,7 +7,7 @@ import { loadImg } from '../util.js';
 export const REF_SOURCE = Object.freeze({ generated: 'generated', mine: 'mine' });
 export const REF_ERROR = Object.freeze({ noRefs: 'no-refs', noDistinct: 'no-distinct-ref' });
 const GENERATE_TRIES = 4;
-const randomSeed = () => (Math.random() * 4294967296) >>> 0;
+export const randomSeed = () => (Math.random() * 4294967296) >>> 0;
 
 function uploadMeta(r, label) {
   return {

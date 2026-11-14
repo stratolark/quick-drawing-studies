@@ -25,6 +25,7 @@ Drawing improves with short, deliberate practice. Version 2 builds each session 
 - **Construction guides.** Step-by-step overlays generated from the 3D scene, labelled as procedural guides rather than an artist's demonstration.
 - **Progress that keeps evidence apart.** Practice activity, assisted retries and independent tests are tracked separately. Small samples say "not enough evidence" instead of showing a trend.
 - **Optional AI coach.** An AI explanation can be requested through a small backend with a provider adapter. It is off until you opt in, and it never overrides the measurements.
+- **Free practice.** No timer and no scores. Generate as many mannequin poses or objects in perspective as you like, and draw them next to the reference or trace over a faded copy of it. You can switch views and change the fade while you draw.
 - **Timed studies.** The original quick-fire sessions are still there: Gesture (15 s), Shapes (30 s) and Values (60 s).
 - **Made for a stylus.** It reads pen pressure and ignores your palm while you draw with a pen.
 
@@ -111,6 +112,7 @@ The tests never call a paid model. `npm run lint` runs ESLint on the JavaScript 
 | `src/learning/` | Curriculum, session state machine, progress and recommendations, versioned storage    |
 | `src/analysis/` | Gesture, shape and value measurements, issue ranking, before-and-after comparison     |
 | `src/learn/`    | The V2 screens: observe, review, summary, progress, construction guides               |
+| `src/free/`     | Free practice: untimed drawing from generated references, side by side or tracing     |
 | `src/coach/`    | AI coach contract (validation, sanitizing) and browser client                         |
 | `server/`       | Optional coach backend: guards, prompt, Claude and mock providers                     |
 | `test/`         | Unit and integration tests, plus a labelled feedback-quality dataset                  |

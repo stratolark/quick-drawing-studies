@@ -16,6 +16,7 @@ flowchart LR
 ```
 
 - `src/app.js` keeps the drawing canvas, tools, timer, compare view and the timed-studies flow. V2 drives the same drawing and compare screens through a few hooks: `startV2Attempt`, `onRoundEnd`, `onReview`, `onNext`, `annotate` and `onQuit`.
+- `src/free/practice.js` drives the same drawing screen through `startFreeAttempt` (no countdown, timer or review) and `setTrace` (the reference shown faded under the canvas). It stores only its preferences under `qs.free` and adds finished drawings to the daily count. Nothing is measured.
 - `src/learn/controller.js` is the only module that dispatches session events. Each stage has one entry action in the `ENTER` table.
 - Analysis runs once, after a drawing ends. It never runs per pen event, so drawing latency is unchanged.
 

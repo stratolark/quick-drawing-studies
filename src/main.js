@@ -5,11 +5,14 @@ import * as observe from './learn/observe-ui.js';
 import * as review from './learn/review-ui.js';
 import * as summary from './learn/summary-ui.js';
 import { renderHomeV2, renderProgressPage } from './learn/home-ui.js';
+import { createFreePractice } from './free/practice.js';
 import { $ } from './util.js';
 
 const api = startApp();
 const learning = createLearning(api, { observe, review, summary });
 api.onHome(() => renderHomeV2(learning));
+const free = createFreePractice(api);
+api.onHome(free.renderSetup);
 observe.bindObserveControls(() => learning);
 
 $('#openProgress').addEventListener('click', () => {

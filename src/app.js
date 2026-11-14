@@ -812,10 +812,12 @@ export function startApp() {
   const stage = $('#stage'),
     refPane = $('#refPane'),
     canvasPane = $('#canvasPane'),
-    refImgEl = $('#refImg');
+    refImgEl = $('#refImg'),
+    traceImg = $('#traceImg');
   const readyEl = $('#ready'),
     timerEl = $('#timer'),
     timebarFill = $('#timebarFill'),
+    timebarEl = timebarFill.parentElement,
     toolbar = $('#toolbar');
 
   /* ---------- timer ---------- */
@@ -926,6 +928,14 @@ export function startApp() {
       }
       return [Math.floor(fw), Math.floor(fh)];
     };
+    if (stage.classList.contains('is-trace')) {
+      stage.classList.remove('is-col');
+      const [w, h] = fit(W, H);
+      canvasPane.style.width = w + 'px';
+      canvasPane.style.height = h + 'px';
+      updateSizeDot();
+      return;
+    }
     const side = fit((W - gap) / 2, H);
     const col = fit(W, (H - gap) / 2);
     const useCol = col[0] * col[1] > side[0] * side[1] * 1.05;
@@ -1240,6 +1250,7 @@ export function startApp() {
       return;
     }
     show('draw');
+    setDrawChrome(false);
     $('#drawMode').textContent = MODES[ss.mode].name;
     $('#drawRound').textContent = 'Drawing ' + (ss.idx + 1) + ' of ' + ss.total;
     setTimerDisplay(ss.secs * 1000, ss.secs * 1000);
@@ -1389,6 +1400,52 @@ export function startApp() {
   }
   /* ss: { v2: true, mode, secs, ready: {round, mode, focus}, onRoundEnd, onQuit }. Resolves when drawing starts. */
   async function startV2Attempt(ss, ref, img, labels) {
+    enterAttempt(ss, labels);
+    setDrawChrome(false);
+    setTimerDisplay(ss.secs * 1000, ss.secs * 1000);
+    const round = setupRound(ss, ref, img);
+    showReady(ss, round, false);
+    await countdown(ss);
+    if (S.session !== ss || ss.ended) {
+      return null;
+    }
+    beginDrawing(ss, round);
+    return round;
+  }
+  /* Free practice: no countdown, timer or review. load() resolves to { ref, img }; a failure is the caller's to report (2026-11-14). */
+  async function startFreeAttempt(ss, load, labels) {
+    enterAttempt(ss, labels);
+    setDrawChrome(true);
+    $('#readyRound').textContent = labels.title;
+    $('#readyMode').textContent = '';
+    $('#readyFocus').replaceChildren();
+    $('#readyCount').textContent = '';
+    $('#readyHint').textContent = 'Preparing the reference…';
+    readyEl.hidden = false;
+    let loaded;
+    try {
+      loaded = await load();
+    } catch (e) {
+      // Keep the drawing already on screen usable when the next reference fails (2026-11-14).
+      if (ss.cur) {
+        sketch.lock(false);
+        canvasPane.classList.remove('is-locked');
+      }
+      throw e;
+    } finally {
+      readyEl.hidden = true;
+    }
+    if (S.session !== ss || ss.ended) {
+      return null;
+    }
+    const round = setupRound(ss, loaded.ref, loaded.img);
+    traceImg.src = loaded.ref.url;
+    sketch.lock(false);
+    canvasPane.classList.remove('is-locked');
+    round.startedAt = performance.now();
+    return round;
+  }
+  function enterAttempt(ss, labels) {
     S.session = ss;
     ss.ended = false;
     ss.rounds = ss.rounds || [];
@@ -1400,9 +1457,10 @@ export function startApp() {
     badge.hidden = !labels.badge;
     $('#pauseBtn').hidden = !ss.onPause;
     $('#pauseBtn').textContent = 'Pause';
-    setTimerDisplay(ss.secs * 1000, ss.secs * 1000);
     sketch.lock(true);
     canvasPane.classList.add('is-locked');
+  }
+  function setupRound(ss, ref, img) {
     const [cw, ch] = canvasSizeFor(ref);
     const round = {
       n: ss.rounds.length + 1,
@@ -1428,13 +1486,27 @@ export function startApp() {
     sketch.setup(cw, ch, ss.mode);
     applyToolState(ss.mode);
     layoutStage();
-    showReady(ss, round, false);
-    await countdown(ss);
-    if (S.session !== ss || ss.ended) {
-      return null;
-    }
-    beginDrawing(ss, round);
     return round;
+  }
+  /* Timed flows show the clock; free practice shows its view controls instead and may trace (2026-11-14). */
+  function setDrawChrome(free) {
+    timerEl.hidden = free;
+    timebarEl.hidden = free;
+    $('#freeCtl').hidden = !free;
+    $('#quitBtn').hidden = free;
+    if (!free) {
+      setTrace(false);
+    }
+  }
+  function setTrace(on, opacity) {
+    stage.classList.toggle('is-trace', on);
+    traceImg.hidden = !on;
+    if (opacity != null) {
+      canvasPane.style.setProperty('--trace-opacity', String(opacity));
+    }
+    if ($('#draw').classList.contains('is-active')) {
+      layoutStage();
+    }
   }
   function pauseV2(ss, paused) {
     if (paused) {
@@ -2502,7 +2574,7 @@ export function startApp() {
     if (e.key === ']') {
       changeSize(1);
     }
-    if (e.key === 'Enter' && readyEl.hidden && S.session.cur && !S.session.cur.drawing) {
+    if (e.key === 'Enter' && !S.session.free && readyEl.hidden && S.session.cur && !S.session.cur.drawing) {
       endRound(S.session, S.session.cur);
     }
   });
@@ -2541,6 +2613,8 @@ export function startApp() {
     canGenerate,
     seg,
     startV2Attempt,
+    startFreeAttempt,
+    setTrace,
     pauseV2,
     stopDrawing,
     recordDrawings,
