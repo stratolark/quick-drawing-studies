@@ -20,7 +20,10 @@ export function tonesFromRGBA(data) {
   const out = new Uint8Array(data.length / 4);
   for (let i = 0; i < out.length; i++) {
     const a = data[i * 4 + 3];
-    if (a < PAINT_ALPHA) { out[i] = TONE.light; continue; }
+    if (a < PAINT_ALPHA) {
+      out[i] = TONE.light;
+      continue;
+    }
     // Canvas downscaling premultiplies, so undo alpha before reading the colour.
     const k = 255 / a;
     out[i] = lum(data[i * 4] * k, data[i * 4 + 1] * k, data[i * 4 + 2] * k) < DARK_LUMINANCE ? TONE.dark : TONE.mid;
@@ -36,11 +39,15 @@ export function maskFromRGBA(data) {
 
 function sample(source, gw, gh, background) {
   const c = document.createElement('canvas');
-  c.width = gw; c.height = gh;
+  c.width = gw;
+  c.height = gh;
   const g = c.getContext('2d', { willReadFrequently: true });
   g.imageSmoothingEnabled = true;
   g.imageSmoothingQuality = 'high';
-  if (background) { g.fillStyle = background; g.fillRect(0, 0, gw, gh); }
+  if (background) {
+    g.fillStyle = background;
+    g.fillRect(0, 0, gw, gh);
+  }
   g.drawImage(source, 0, 0, gw, gh);
   return g.getImageData(0, 0, gw, gh).data;
 }
@@ -51,5 +58,5 @@ export const paintMask = (drawing, gw, gh) => maskFromRGBA(sample(drawing, gw, g
 
 /* Grid size with the canvas aspect ratio, cols cells wide. */
 export function gridSize(w, h, cols) {
-  return { w: cols, h: Math.max(1, Math.round(cols * h / w)) };
+  return { w: cols, h: Math.max(1, Math.round((cols * h) / w)) };
 }

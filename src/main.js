@@ -12,8 +12,15 @@ const learning = createLearning(api, { observe, review, summary });
 api.onHome(() => renderHomeV2(learning));
 observe.bindObserveControls(() => learning);
 
-$('#openProgress').addEventListener('click', () => { renderProgressPage(learning); api.show('progress'); $('#progress').scrollTop = 0; });
-$('#progressHome').addEventListener('click', () => { api.show('home'); api.renderHome(); });
+$('#openProgress').addEventListener('click', () => {
+  renderProgressPage(learning);
+  api.show('progress');
+  $('#progress').scrollTop = 0;
+});
+$('#progressHome').addEventListener('click', () => {
+  api.show('home');
+  api.renderHome();
+});
 $('#lsHome').addEventListener('click', () => learning.finish());
 $('#lsAgain').addEventListener('click', () => {
   const { type, objectiveId, source } = learning.live;

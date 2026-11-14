@@ -10,7 +10,7 @@ const AT_INFINITY = 1e6;
 
 export function toPx(cam, p, w, h) {
   const v = p.clone().project(cam);
-  return [(v.x + 1) / 2 * w, (1 - v.y) / 2 * h];
+  return [((v.x + 1) / 2) * w, ((1 - v.y) / 2) * h];
 }
 
 /* True when the world point lies in front of the camera (camera space z < 0). */
@@ -41,7 +41,7 @@ export function horizon(cam, w, h) {
   if (!a || !b) return null;
   const y = (a[1] + b[1]) / 2;
   const [l, r] = a[0] <= b[0] ? [a, b] : [b, a];
-  return { y, inFrame: y >= 0 && y <= h, rollDeg: Math.atan2(r[1] - l[1], r[0] - l[0]) * 180 / Math.PI };
+  return { y, inFrame: y >= 0 && y <= h, rollDeg: (Math.atan2(r[1] - l[1], r[0] - l[0]) * 180) / Math.PI };
 }
 
 /* Projected radius in pixels of a sphere of world radius r centred at p. */
@@ -66,18 +66,23 @@ export function cameraMeta(cam, w, h) {
     aspect: w / h,
     position: cam.position.toArray(),
     direction: fwd.toArray(),
-    elevationDeg: Math.asin(Math.max(-1, Math.min(1, fwd.y))) * 180 / Math.PI,
+    elevationDeg: (Math.asin(Math.max(-1, Math.min(1, fwd.y))) * 180) / Math.PI,
   };
 }
 
 /* Bounding box of a binary mask (1 = inside), scaled back to full image pixels. */
 export function maskBBox(mask, mw, mh, sx, sy = sx) {
-  let minX = mw, minY = mh, maxX = -1, maxY = -1;
+  let minX = mw,
+    minY = mh,
+    maxX = -1,
+    maxY = -1;
   for (let y = 0; y < mh; y++) {
     for (let x = 0; x < mw; x++) {
       if (!mask[y * mw + x]) continue;
-      if (x < minX) minX = x; if (x > maxX) maxX = x;
-      if (y < minY) minY = y; if (y > maxY) maxY = y;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
     }
   }
   if (maxX < 0) return null;

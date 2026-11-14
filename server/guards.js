@@ -12,7 +12,10 @@ export function createRateLimiter({ perMinute, perDay }) {
     check(id, now = Date.now()) {
       const day = dayKey(now);
       let c = clients.get(id);
-      if (!c || c.day !== day) { c = { day, total: 0, recent: [] }; clients.set(id, c); }
+      if (!c || c.day !== day) {
+        c = { day, total: 0, recent: [] };
+        clients.set(id, c);
+      }
       c.recent = c.recent.filter(t => now - t < MINUTE_MS);
       if (c.total >= perDay) return Math.ceil((Date.parse(day + 'T00:00:00Z') + 86400000 - now) / 1000);
       if (c.recent.length >= perMinute) return Math.ceil((MINUTE_MS - (now - c.recent[0])) / 1000);
@@ -24,12 +27,27 @@ export function createRateLimiter({ perMinute, perDay }) {
 }
 
 export function createBudget({ dailyUsd }) {
-  let day = null, spent = 0;
-  const roll = now => { const d = dayKey(now); if (d !== day) { day = d; spent = 0; } };
+  let day = null,
+    spent = 0;
+  const roll = now => {
+    const d = dayKey(now);
+    if (d !== day) {
+      day = d;
+      spent = 0;
+    }
+  };
   return {
-    allows(now = Date.now()) { roll(now); return spent < dailyUsd; },
-    record(usd, now = Date.now()) { roll(now); spent += Math.max(0, usd || 0); },
-    get spent() { return spent; },
+    allows(now = Date.now()) {
+      roll(now);
+      return spent < dailyUsd;
+    },
+    record(usd, now = Date.now()) {
+      roll(now);
+      spent += Math.max(0, usd || 0);
+    },
+    get spent() {
+      return spent;
+    },
   };
 }
 

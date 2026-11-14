@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'node:http';
-import { validateRequest, sanitizeFeedback, inspectImage, feedbackJsonSchema, ERROR_CODE, UNVERIFIED, LIMITS } from '../src/coach/schema.js';
+import {
+  validateRequest,
+  sanitizeFeedback,
+  inspectImage,
+  feedbackJsonSchema,
+  ERROR_CODE,
+  UNVERIFIED,
+  LIMITS,
+} from '../src/coach/schema.js';
 import { requestCoachFeedback, coachHealth } from '../src/coach/client.js';
 import { createCoachHandler } from '../server/app.js';
 import { createMockProvider, mockFeedback } from '../server/providers/mock.js';
@@ -13,11 +21,39 @@ import { SYSTEM_PROMPT, buildUserContent } from '../server/prompt.js';
 function pngB64(w, h) {
   const b = Buffer.alloc(33);
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(b, 0);
-  b.writeUInt32BE(13, 8); b.write('IHDR', 12); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20);
+  b.writeUInt32BE(13, 8);
+  b.write('IHDR', 12);
+  b.writeUInt32BE(w, 16);
+  b.writeUInt32BE(h, 20);
   return b.toString('base64');
 }
 function jpegB64(w, h) {
-  const b = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00, 0xff, 0xc0, 0x00, 0x11, 0x08, h >> 8, h & 255, w >> 8, w & 255, 0x03, 0, 0, 0, 0, 0, 0]);
+  const b = Buffer.from([
+    0xff,
+    0xd8,
+    0xff,
+    0xe0,
+    0x00,
+    0x04,
+    0x00,
+    0x00,
+    0xff,
+    0xc0,
+    0x00,
+    0x11,
+    0x08,
+    h >> 8,
+    h & 255,
+    w >> 8,
+    w & 255,
+    0x03,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+  ]);
   return b.toString('base64');
 }
 
@@ -26,12 +62,25 @@ const EVIDENCE = [
   { key: 'bowError', label: 'Bend difference', value: 0.02, display: '2%', within: true },
 ];
 function body(extra) {
-  return Object.assign({
-    objectiveId: 'gesture.line-of-action', attemptType: 'initial', guidance: 1, secs: 90, style: 'normal',
-    evidence: EVIDENCE,
-    measuredIssue: { id: 'gesture.orientation', measured: 'Your main line is tilted about 14° clockwise compared with the reference.' },
-    images: [{ role: 'reference', mediaType: 'image/jpeg', data: jpegB64(750, 1000) }, { role: 'overlay', mediaType: 'image/png', data: pngB64(750, 1000) }],
-  }, extra);
+  return Object.assign(
+    {
+      objectiveId: 'gesture.line-of-action',
+      attemptType: 'initial',
+      guidance: 1,
+      secs: 90,
+      style: 'normal',
+      evidence: EVIDENCE,
+      measuredIssue: {
+        id: 'gesture.orientation',
+        measured: 'Your main line is tilted about 14° clockwise compared with the reference.',
+      },
+      images: [
+        { role: 'reference', mediaType: 'image/jpeg', data: jpegB64(750, 1000) },
+        { role: 'overlay', mediaType: 'image/png', data: pngB64(750, 1000) },
+      ],
+    },
+    extra,
+  );
 }
 
 describe('request validation', () => {
@@ -43,23 +92,51 @@ describe('request validation', () => {
   it.each([
     ['unknown objective', { objectiveId: 'x' }],
     ['unknown attempt type', { attemptType: 'cheat' }],
-    ['evidence key not measured by this exercise', { evidence: [{ key: 'overlap', label: 'x', value: 1, display: '1' }] }],
+    [
+      'evidence key not measured by this exercise',
+      { evidence: [{ key: 'overlap', label: 'x', value: 1, display: '1' }] },
+    ],
     ['evidence value must be a number', { evidence: [{ key: 'bowError', label: 'x', value: '3', display: '3' }] }],
     ['send one to three images', { images: [] }],
-    ['the drawing must be included', { images: [{ role: 'reference', mediaType: 'image/jpeg', data: jpegB64(10, 10) }] }],
-    ['image content does not match its type', { images: [{ role: 'overlay', mediaType: 'image/jpeg', data: pngB64(10, 10) }] }],
-    ['image dimensions out of range', { images: [{ role: 'overlay', mediaType: 'image/png', data: pngB64(5000, 10) }] }],
+    [
+      'the drawing must be included',
+      { images: [{ role: 'reference', mediaType: 'image/jpeg', data: jpegB64(10, 10) }] },
+    ],
+    [
+      'image content does not match its type',
+      { images: [{ role: 'overlay', mediaType: 'image/jpeg', data: pngB64(10, 10) }] },
+    ],
+    [
+      'image dimensions out of range',
+      { images: [{ role: 'overlay', mediaType: 'image/png', data: pngB64(5000, 10) }] },
+    ],
     ['image is not base64', { images: [{ role: 'overlay', mediaType: 'image/png', data: 'not base64!' }] }],
     ['unsupported image type', { images: [{ role: 'overlay', mediaType: 'image/gif', data: pngB64(10, 10) }] }],
-    ['duplicate image role', { images: [{ role: 'overlay', mediaType: 'image/png', data: pngB64(10, 10) }, { role: 'overlay', mediaType: 'image/png', data: pngB64(10, 10) }] }],
+    [
+      'duplicate image role',
+      {
+        images: [
+          { role: 'overlay', mediaType: 'image/png', data: pngB64(10, 10) },
+          { role: 'overlay', mediaType: 'image/png', data: pngB64(10, 10) },
+        ],
+      },
+    ],
   ])('rejects: %s', (msg, patch) => {
     const v = validateRequest(body(patch));
     expect(v.ok).toBe(false);
     expect(v.error).toBe(msg);
   });
   it('reads real image sizes from headers', () => {
-    expect(inspectImage(Buffer.from(pngB64(640, 480), 'base64'))).toEqual({ type: 'image/png', width: 640, height: 480 });
-    expect(inspectImage(Buffer.from(jpegB64(800, 600), 'base64'))).toEqual({ type: 'image/jpeg', width: 800, height: 600 });
+    expect(inspectImage(Buffer.from(pngB64(640, 480), 'base64'))).toEqual({
+      type: 'image/png',
+      width: 640,
+      height: 480,
+    });
+    expect(inspectImage(Buffer.from(jpegB64(800, 600), 'base64'))).toEqual({
+      type: 'image/jpeg',
+      width: 800,
+      height: 600,
+    });
     expect(inspectImage(Buffer.from('GIF89a........'))).toBe(null);
   });
 });
@@ -73,22 +150,40 @@ describe('response sanitizing', () => {
     expect(r.feedback.mainIssue).toMatch(/14°/);
   });
   it('rejects missing fields and wrong types', () => {
-    const missing = good(); delete missing.howToCorrect;
+    const missing = good();
+    delete missing.howToCorrect;
     expect(() => sanitizeFeedback(missing, EVIDENCE)).toThrow();
     expect(() => sanitizeFeedback(Object.assign(good(), { mainIssue: 42 }), EVIDENCE)).toThrow();
     expect(() => sanitizeFeedback('not an object', EVIDENCE)).toThrow();
     expect(() => sanitizeFeedback([], EVIDENCE)).toThrow();
-    try { sanitizeFeedback(null, EVIDENCE); } catch (e) { expect(e.code).toBe(ERROR_CODE.invalidResponse); }
+    try {
+      sanitizeFeedback(null, EVIDENCE);
+    } catch (e) {
+      expect(e.code).toBe(ERROR_CODE.invalidResponse);
+    }
   });
   it('removes numbers the app never measured', () => {
-    const r = sanitizeFeedback(Object.assign(good(), { mainIssue: 'Your torso is 37° off and the legs are 58% too long, but the 14° tilt is the key.' }), EVIDENCE);
+    const r = sanitizeFeedback(
+      Object.assign(good(), {
+        mainIssue: 'Your torso is 37° off and the legs are 58% too long, but the 14° tilt is the key.',
+      }),
+      EVIDENCE,
+    );
     expect(r.feedback.mainIssue).not.toMatch(/37°|58%/);
     expect(r.feedback.mainIssue).toContain(UNVERIFIED);
     expect(r.feedback.mainIssue).toMatch(/14°/);
     expect(r.flags).toContain('unverified-number');
   });
   it('drops evidence that cites a measurement that was not sent', () => {
-    const r = sanitizeFeedback(Object.assign(good(), { evidence: [{ source: 'overlap', observation: 'made up' }, { source: 'visual', observation: 'the head is small' }] }), EVIDENCE);
+    const r = sanitizeFeedback(
+      Object.assign(good(), {
+        evidence: [
+          { source: 'overlap', observation: 'made up' },
+          { source: 'visual', observation: 'the head is small' },
+        ],
+      }),
+      EVIDENCE,
+    );
     expect(r.feedback.evidence).toEqual([{ source: 'visual', observation: 'the head is small' }]);
     expect(r.flags).toContain('dropped-evidence');
   });
@@ -102,7 +197,10 @@ describe('response sanitizing', () => {
 describe('prompt construction', () => {
   it('builds the prompt from validated fields and marks measurements as verified', () => {
     const content = buildUserContent(validateRequest(body()).value);
-    const text = content.filter(c => c.type === 'text').map(c => c.text).join('\n');
+    const text = content
+      .filter(c => c.type === 'text')
+      .map(c => c.text)
+      .join('\n');
     expect(text).toMatch(/Verified measurements/);
     expect(text).toMatch(/\[orientationErrorDeg\] Main-line tilt error: 14°/);
     expect(content.filter(c => c.type === 'image')).toHaveLength(2);
@@ -138,7 +236,9 @@ describe('guards and configuration', () => {
     expect(accessAllowed('secret', undefined)).toBe(false);
   });
   it('refuses to expose a paid provider without an access code', () => {
-    expect(() => loadConfig({ QS_COACH_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k', QS_SERVER_HOST: '0.0.0.0' }, [])).toThrow(/QS_ACCESS_TOKEN/);
+    expect(() =>
+      loadConfig({ QS_COACH_PROVIDER: 'anthropic', ANTHROPIC_API_KEY: 'k', QS_SERVER_HOST: '0.0.0.0' }, []),
+    ).toThrow(/QS_ACCESS_TOKEN/);
     expect(() => loadConfig({ QS_COACH_PROVIDER: 'anthropic' }, [])).toThrow(/ANTHROPIC_API_KEY/);
     expect(loadConfig({}, []).provider).toBe('off');
     expect(loadConfig({}, ['--provider=mock']).provider).toBe('mock');
@@ -148,11 +248,23 @@ describe('guards and configuration', () => {
 /* End-to-end through the HTTP handler with the mock provider. No network, no paid calls. */
 describe('coach server', () => {
   let server, base;
-  const baseCfg = { accessToken: '', timeoutMs: 400, ratePerMinute: 100, ratePerDay: 1000, dailyBudgetUsd: 1, staticDir: '', mockMode: 'ok' };
+  const baseCfg = {
+    accessToken: '',
+    timeoutMs: 400,
+    ratePerMinute: 100,
+    ratePerDay: 1000,
+    dailyBudgetUsd: 1,
+    staticDir: '',
+    mockMode: 'ok',
+  };
   const handlers = {};
   function handlerFor(name, cfgPatch, provider) {
     const cfg = Object.assign({}, baseCfg, cfgPatch);
-    handlers[name] = createCoachHandler({ cfg, provider: provider === undefined ? createMockProvider(cfg) : provider, log: () => {} });
+    handlers[name] = createCoachHandler({
+      cfg,
+      provider: provider === undefined ? createMockProvider(cfg) : provider,
+      log: () => {},
+    });
   }
   beforeAll(async () => {
     handlerFor('ok', {});
@@ -163,7 +275,20 @@ describe('coach server', () => {
     handlerFor('off', {}, null);
     handlerFor('locked', { accessToken: 'letmein' });
     handlerFor('limited', { ratePerMinute: 1 });
-    handlerFor('broke', { dailyBudgetUsd: 0.0001 }, { name: 'mock', model: 'm', review: async () => ({ raw: mockFeedback(validateRequest(body()).value), model: 'm', usage: { inputTokens: 1, outputTokens: 1 }, costUsd: 1 }) });
+    handlerFor(
+      'broke',
+      { dailyBudgetUsd: 0.0001 },
+      {
+        name: 'mock',
+        model: 'm',
+        review: async () => ({
+          raw: mockFeedback(validateRequest(body()).value),
+          model: 'm',
+          usage: { inputTokens: 1, outputTokens: 1 },
+          costUsd: 1,
+        }),
+      },
+    );
     server = http.createServer((req, res) => {
       const name = req.url.split('/')[1];
       req.url = req.url.slice(name.length + 1);
@@ -174,7 +299,12 @@ describe('coach server', () => {
   });
   afterAll(() => new Promise(r => server.close(r)));
 
-  const post = (name, payload, headers) => fetch(base(name) + '/api/coach/feedback', { method: 'POST', headers: Object.assign({ 'content-type': 'application/json' }, headers), body: typeof payload === 'string' ? payload : JSON.stringify(payload) });
+  const post = (name, payload, headers) =>
+    fetch(base(name) + '/api/coach/feedback', {
+      method: 'POST',
+      headers: Object.assign({ 'content-type': 'application/json' }, headers),
+      body: typeof payload === 'string' ? payload : JSON.stringify(payload),
+    });
 
   it('returns validated feedback', async () => {
     const r = await post('ok', body());
@@ -231,7 +361,11 @@ describe('coach server', () => {
 });
 
 describe('browser client', () => {
-  const ok = feedback => async () => new Response(JSON.stringify({ feedback, flags: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
+  const ok = feedback => async () =>
+    new Response(JSON.stringify({ feedback, flags: [] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
   const payload = validateRequest(body()).value;
 
   it('returns re-validated feedback', async () => {
@@ -253,15 +387,29 @@ describe('browser client', () => {
     await expect(requestCoachFeedback(payload, { fetchImpl: f, accessCode: '' })).rejects.toMatchObject({ code });
   });
   it('maps network errors to unavailable', async () => {
-    await expect(requestCoachFeedback(payload, { fetchImpl: async () => { throw new TypeError('fetch failed'); }, accessCode: '' })).rejects.toMatchObject({ code: ERROR_CODE.unavailable });
+    await expect(
+      requestCoachFeedback(payload, {
+        fetchImpl: async () => {
+          throw new TypeError('fetch failed');
+        },
+        accessCode: '',
+      }),
+    ).rejects.toMatchObject({ code: ERROR_CODE.unavailable });
   });
   it('maps malformed bodies to invalid_response', async () => {
     const f = async () => new Response('not json', { status: 200 });
-    await expect(requestCoachFeedback(payload, { fetchImpl: f, accessCode: '' })).rejects.toMatchObject({ code: ERROR_CODE.invalidResponse });
+    await expect(requestCoachFeedback(payload, { fetchImpl: f, accessCode: '' })).rejects.toMatchObject({
+      code: ERROR_CODE.invalidResponse,
+    });
   });
-  const hang = (url, init) => new Promise((_, rej) => init.signal.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError'))));
+  const hang = (url, init) =>
+    new Promise((_, rej) =>
+      init.signal.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError'))),
+    );
   it('times out', async () => {
-    await expect(requestCoachFeedback(payload, { fetchImpl: hang, timeoutMs: 30, accessCode: '' })).rejects.toMatchObject({ code: ERROR_CODE.timeout });
+    await expect(
+      requestCoachFeedback(payload, { fetchImpl: hang, timeoutMs: 30, accessCode: '' }),
+    ).rejects.toMatchObject({ code: ERROR_CODE.timeout });
   });
   it('can be cancelled by the learner', async () => {
     const ctl = new AbortController();
@@ -270,6 +418,10 @@ describe('browser client', () => {
     await expect(p).rejects.toMatchObject({ code: ERROR_CODE.cancelled });
   });
   it('reports an unreachable coach as unavailable', async () => {
-    expect(await coachHealth(async () => { throw new TypeError('down'); })).toEqual({ available: false });
+    expect(
+      await coachHealth(async () => {
+        throw new TypeError('down');
+      }),
+    ).toEqual({ available: false });
   });
 });

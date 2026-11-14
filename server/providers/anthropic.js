@@ -1,5 +1,15 @@
 /* Claude provider: one Messages API call with structured JSON output and server-side refusal fallback. */
-import Anthropic, { APIUserAbortError, APIConnectionTimeoutError, APIConnectionError, RateLimitError, AuthenticationError, PermissionDeniedError, BadRequestError, InternalServerError, APIError } from '@anthropic-ai/sdk';
+import Anthropic, {
+  APIUserAbortError,
+  APIConnectionTimeoutError,
+  APIConnectionError,
+  RateLimitError,
+  AuthenticationError,
+  PermissionDeniedError,
+  BadRequestError,
+  InternalServerError,
+  APIError,
+} from '@anthropic-ai/sdk';
 import { ERROR_CODE, feedbackJsonSchema } from '../../src/coach/schema.js';
 import { SYSTEM_PROMPT, buildUserContent } from '../prompt.js';
 
@@ -22,11 +32,14 @@ export function costUsd(model, usage) {
 }
 
 function mapError(e, signal) {
-  if (e instanceof APIUserAbortError) return { code: signal && signal.reason === 'timeout' ? ERROR_CODE.timeout : ERROR_CODE.cancelled };
+  if (e instanceof APIUserAbortError)
+    return { code: signal && signal.reason === 'timeout' ? ERROR_CODE.timeout : ERROR_CODE.cancelled };
   if (e instanceof APIConnectionTimeoutError) return { code: ERROR_CODE.timeout };
   if (e instanceof RateLimitError) return { code: ERROR_CODE.rateLimited };
-  if (e instanceof AuthenticationError || e instanceof PermissionDeniedError) return { code: ERROR_CODE.providerError, log: 'provider rejected the API key' };
-  if (e instanceof BadRequestError) return { code: ERROR_CODE.providerError, log: 'provider rejected the request: ' + e.message };
+  if (e instanceof AuthenticationError || e instanceof PermissionDeniedError)
+    return { code: ERROR_CODE.providerError, log: 'provider rejected the API key' };
+  if (e instanceof BadRequestError)
+    return { code: ERROR_CODE.providerError, log: 'provider rejected the request: ' + e.message };
   if (e instanceof InternalServerError) return { code: ERROR_CODE.unavailable };
   if (e instanceof APIConnectionError) return { code: ERROR_CODE.unavailable };
   if (e instanceof APIError) return { code: ERROR_CODE.providerError, log: 'provider error ' + e.status };
@@ -44,9 +57,15 @@ export function createAnthropicProvider(cfg) {
         max_tokens: MAX_TOKENS,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: buildUserContent(req) }],
-        output_config: { effort: cfg.effort, format: { type: 'json_schema', schema: feedbackJsonSchema(req.evidence.map(e => e.key)) } },
+        output_config: {
+          effort: cfg.effort,
+          format: { type: 'json_schema', schema: feedbackJsonSchema(req.evidence.map(e => e.key)) },
+        },
       };
-      if (cfg.fallbacks) { params.betas = [FALLBACK_BETA]; params.fallbacks = 'default'; }
+      if (cfg.fallbacks) {
+        params.betas = [FALLBACK_BETA];
+        params.fallbacks = 'default';
+      }
       let resp;
       try {
         resp = await client.beta.messages.create(params, { signal });
@@ -58,11 +77,24 @@ export function createAnthropicProvider(cfg) {
       const usage = resp.usage || {};
       const cost = costUsd(resp.model || cfg.model, usage);
       if (resp.stop_reason === 'refusal') throw { code: ERROR_CODE.refused, costUsd: cost };
-      if (resp.stop_reason === 'max_tokens') throw { code: ERROR_CODE.invalidResponse, costUsd: cost, log: 'response hit max_tokens' };
-      const text = (resp.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+      if (resp.stop_reason === 'max_tokens')
+        throw { code: ERROR_CODE.invalidResponse, costUsd: cost, log: 'response hit max_tokens' };
+      const text = (resp.content || [])
+        .filter(b => b.type === 'text')
+        .map(b => b.text)
+        .join('');
       let raw;
-      try { raw = JSON.parse(text); } catch (e) { throw { code: ERROR_CODE.invalidResponse, costUsd: cost, log: 'response was not JSON' }; }
-      return { raw, model: resp.model || cfg.model, usage: { inputTokens: usage.input_tokens || 0, outputTokens: usage.output_tokens || 0 }, costUsd: cost };
+      try {
+        raw = JSON.parse(text);
+      } catch (e) {
+        throw { code: ERROR_CODE.invalidResponse, costUsd: cost, log: 'response was not JSON' };
+      }
+      return {
+        raw,
+        model: resp.model || cfg.model,
+        usage: { inputTokens: usage.input_tokens || 0, outputTokens: usage.output_tokens || 0 },
+        costUsd: cost,
+      };
     },
   };
 }

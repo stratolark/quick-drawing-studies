@@ -81,31 +81,39 @@ npm run server
 
 The key stays on the server. The server listens on `127.0.0.1` by default and refuses to listen on any other address with a paid provider unless `QS_ACCESS_TOKEN` is set. It also enforces per-client rate limits, a daily spending budget, request size and image checks, and a timeout. In the app, turn on "Allow sending drawings to the AI coach" before asking for feedback.
 
-### Tests and build
+### Tests, lint and build
 
 ```bash
 npm test
 ```
 
 ```bash
+npm run lint
+```
+
+```bash
+npm run format
+```
+
+```bash
 npm run build
 ```
 
-The tests never call a paid model. `npm run build` writes a static site to `dist/` with relative paths, so it can be served from a sub-path. `npm run server` also serves `dist/` when it exists.
+The tests never call a paid model. `npm run lint` runs ESLint on the JavaScript and Stylelint on the CSS. `npm run format` rewrites files with Prettier, and `npm run format:check` only reports. `npm run build` writes a static site to `dist/` with relative paths, so it can be served from a sub-path. `npm run server` also serves `dist/` when it exists.
 
 ## How it works
 
-| Path                  | Contents                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------ |
-| `index.html`          | Markup for every screen                                                                    |
-| `src/app.js`          | Drawing canvas, tools, timer, compare view and the timed-studies flow                      |
-| `src/refs/`           | Generated references (three.js) and the projection helpers that record their geometry      |
-| `src/learning/`       | Curriculum, session state machine, progress and recommendations, versioned storage         |
-| `src/analysis/`       | Gesture, shape and value measurements, issue ranking, before-and-after comparison          |
-| `src/learn/`          | The V2 screens: observe, review, summary, progress, construction guides                    |
-| `src/coach/`          | AI coach contract (validation, sanitizing) and browser client                              |
-| `server/`             | Optional coach backend: guards, prompt, Claude and mock providers                          |
-| `test/`               | Unit and integration tests, plus a labelled feedback-quality dataset                       |
+| Path            | Contents                                                                              |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `index.html`    | Markup for every screen                                                               |
+| `src/app.js`    | Drawing canvas, tools, timer, compare view and the timed-studies flow                 |
+| `src/refs/`     | Generated references (three.js) and the projection helpers that record their geometry |
+| `src/learning/` | Curriculum, session state machine, progress and recommendations, versioned storage    |
+| `src/analysis/` | Gesture, shape and value measurements, issue ranking, before-and-after comparison     |
+| `src/learn/`    | The V2 screens: observe, review, summary, progress, construction guides               |
+| `src/coach/`    | AI coach contract (validation, sanitizing) and browser client                         |
+| `server/`       | Optional coach backend: guards, prompt, Claude and mock providers                     |
+| `test/`         | Unit and integration tests, plus a labelled feedback-quality dataset                  |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the session state machine, the analysis pipeline, the data model, security and the known limitations.
 

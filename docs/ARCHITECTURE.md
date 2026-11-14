@@ -15,7 +15,7 @@ flowchart LR
   R[src/refs<br>three.js + projection] -->|image + geometry| C
 ```
 
-- `src/app.js` keeps the V1 drawing canvas, tools, timer, compare view and the timed-studies flow. V2 drives the same drawing and compare screens through a few hooks: `startV2Attempt`, `onRoundEnd`, `onReview`, `onNext`, `annotate` and `onQuit`.
+- `src/app.js` keeps the drawing canvas, tools, timer, compare view and the timed-studies flow. V2 drives the same drawing and compare screens through a few hooks: `startV2Attempt`, `onRoundEnd`, `onReview`, `onNext`, `annotate` and `onQuit`.
 - `src/learn/controller.js` is the only module that dispatches session events. Each stage has one entry action in the `ENTER` table.
 - Analysis runs once, after a drawing ends. It never runs per pen event, so drawing latency is unchanged.
 
@@ -65,15 +65,15 @@ Rules the engine enforces, each covered by a test:
 
 `src/refs/refs3d.js` renders each reference and records its geometry with the same camera, after rendering. `src/refs/projection.js` holds the projection math, which is unit-tested against cameras with known answers.
 
-| Field | Source | Used by |
-| --- | --- | --- |
-| `actionLine` | Projected head, neck, chest and pelvis joints, then the farther-reaching leg | Gesture analysis, observation check, construction guide |
-| `landmarks`, `massRadii` | Projected joints, plus sphere radii projected through the camera's right axis | Construction guide |
-| `silhouette.bbox` + in-memory mask | Second render with a flat black override material, at a quarter of the image size | Shape analysis, observation check |
-| `horizon` | Vanishing row of horizontal directions | Observation check, construction guide |
-| `vanishingPoints`, `forms` | Box axes and projected box corners | Construction guide |
-| `light` | Key light direction in camera space | Values guide and wording |
-| `difficulty` | Pose tier (1 to 3), camera angles | Comparable transfer references |
+| Field                              | Source                                                                            | Used by                                                 |
+| ---------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `actionLine`                       | Projected head, neck, chest and pelvis joints, then the farther-reaching leg      | Gesture analysis, observation check, construction guide |
+| `landmarks`, `massRadii`           | Projected joints, plus sphere radii projected through the camera's right axis     | Construction guide                                      |
+| `silhouette.bbox` + in-memory mask | Second render with a flat black override material, at a quarter of the image size | Shape analysis, observation check                       |
+| `horizon`                          | Vanishing row of horizontal directions                                            | Observation check, construction guide                   |
+| `vanishingPoints`, `forms`         | Box axes and projected box corners                                                | Construction guide                                      |
+| `light`                            | Key light direction in camera space                                               | Values guide and wording                                |
+| `difficulty`                       | Pose tier (1 to 3), camera angles                                                 | Comparable transfer references                          |
 
 The reference ID includes the generator version, seed and options, so a stored generated reference can be re-rendered. User images get `source: 'upload'` and no geometry, so every measurement reports itself unavailable for them.
 
@@ -110,17 +110,16 @@ Tolerances and change thresholds were set by judgment against synthetic cases. T
 
 ## Data model
 
-All records live in `localStorage`. V1 keys (`qs.settings`, `qs.profile`, `qs.sessions`) are untouched and still owned by the timed-studies flow. V2 reads old classic sessions through `classicSessions()` instead of copying them.
+All records live in `localStorage`. The timed-studies flow keeps its own keys (`qs.settings`, `qs.profile`, `qs.sessions`) in `src/app.js`, and the Recent list reads its sessions from that flow's state. Older data shapes are not migrated.
 
-| Key | Record | Cap |
-| --- | --- | --- |
-| `qs.v2.meta` | `{ schemaVersion: 2, migratedAt, from }` | |
-| `qs.v2.sessions` | LearningSession | 80 |
-| `qs.v2.attempts` | DrawingAttempt | 400 |
-| `qs.v2.prefs` | guidance and pose tier per track, AI opt-in, stage overrides | |
-| `qs.v2.feedback` | Disagreement notes on measured or AI feedback | 200 |
+| Key              | Record                                                       | Cap |
+| ---------------- | ------------------------------------------------------------ | --- |
+| `qs.v2.sessions` | LearningSession                                              | 80  |
+| `qs.v2.attempts` | DrawingAttempt                                               | 400 |
+| `qs.v2.prefs`    | guidance and pose tier per track, AI opt-in, stage overrides |     |
+| `qs.v2.feedback` | Disagreement notes on measured or AI feedback                | 200 |
 
-Migrations run from schema N to N+1 through the `MIGRATIONS` table in `storage.js`. Schema 1 is the V1 app. When the store is full, the oldest half of a collection is dropped and the write is retried once.
+When the store is full, the oldest half of a collection is dropped and the write is retried once.
 
 - **LearningObjective** (in code, `OBJECTIVES`): `id`, `track`, `description`, `criteria`, `exercises`, `evaluator`, `focusMetric`, `prerequisites`.
 - **DrawingReference** (`toReferenceRecord`): `id`, `source`, `metaVersion`, `generator`, `seed`, `options`, `width`, `height`, `difficulty`, `camera`, `geometry` (coordinate system `image-px-top-left`, action line, landmarks, silhouette box, horizon, vanishing points, light).
@@ -146,5 +145,5 @@ Migrations run from schema N to N+1 through the `MIGRATIONS` table in `storage.j
 - **User images.** These have no verified geometry, so their measurements are unavailable and only self-checks apply.
 - **AI.** Feedback quality has not been evaluated against human judgments. The labelled dataset in `test/fixtures/feedback-cases.js` checks the measurement layer only, and its `humanLabel` fields are empty. AI ratings are uncalibrated, so none are shown.
 - **Tolerances and thresholds** come from judgment, not from validation data.
-- **Storage** is per browser. The V1 remote `Store` path is unchanged and is not used by V2.
+- **Storage** is per browser. The optional remote `Store` in `src/app.js` covers only the timed-studies flow.
 - **Hot reload.** Editing source while `npm run dev` runs reloads the page and drops the session in progress. The finished drawings are kept, and the session is listed as interrupted.

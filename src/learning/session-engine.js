@@ -5,8 +5,6 @@
    Optional stages can be disabled in the plan or skipped. END_EARLY keeps every finished attempt. */
 import { GUIDANCE, GUIDANCE_LEVELS, STAGE, OVERLAYS } from './curriculum.js';
 
-export const SESSION_SCHEMA_VERSION = 2;
-
 export const EVENT = Object.freeze({
   start: 'START',
   complete: 'COMPLETE',
@@ -46,8 +44,10 @@ const FINISHED = new Set([STAGE.summary, STAGE.completed]);
 
 export function createSession({ id, type, objectiveId, plan, guidance, now }) {
   return {
-    schemaVersion: SESSION_SCHEMA_VERSION,
-    id, type, objectiveId, plan,
+    id,
+    type,
+    objectiveId,
+    plan,
     guidance: guidance == null ? GUIDANCE.assisted : guidance,
     stage: STAGE.setup,
     paused: false,
@@ -75,7 +75,9 @@ function firstEnabled(state, stages) {
   return stages.find(s => state.plan[s] && state.plan[s].enabled) || null;
 }
 
-function afterObserve(state) { return firstEnabled(state, [STAGE.warmup, STAGE.focused]); }
+function afterObserve(state) {
+  return firstEnabled(state, [STAGE.warmup, STAGE.focused]);
+}
 
 export function reviewedAttempt(state) {
   return state.attempts.find(a => a.id === state.reviewOf) || null;
@@ -95,7 +97,8 @@ function recordAttempt(state, ev, now) {
   const type = ATTEMPT_TYPE_BY_STAGE[state.stage];
   const refs = state.references;
   let parentId = null;
-  if (type === ATTEMPT_TYPE.initial && refs.focus && a.referenceId !== refs.focus) return reject(state, 'focused-attempt-must-use-observed-reference');
+  if (type === ATTEMPT_TYPE.initial && refs.focus && a.referenceId !== refs.focus)
+    return reject(state, 'focused-attempt-must-use-observed-reference');
   if (type === ATTEMPT_TYPE.correction) {
     if (a.referenceId !== refs.focus) return reject(state, 'correction-must-use-same-reference');
     parentId = state.reviewOf;
@@ -139,8 +142,10 @@ export function transition(state, ev, now) {
     case EVENT.setReference: {
       const { role, referenceId } = ev;
       if (!referenceId || !(role in state.references)) return reject(state, 'bad-reference');
-      if (role === REF_ROLE.focus && state.references.focus && state.references.focus !== referenceId) return reject(state, 'focus-reference-already-set');
-      if (role === REF_ROLE.transfer && referenceId === state.references.focus) return reject(state, 'transfer-reference-must-differ');
+      if (role === REF_ROLE.focus && state.references.focus && state.references.focus !== referenceId)
+        return reject(state, 'focus-reference-already-set');
+      if (role === REF_ROLE.transfer && referenceId === state.references.focus)
+        return reject(state, 'transfer-reference-must-differ');
       return ok(Object.assign({}, state, { references: Object.assign({}, state.references, { [role]: referenceId }) }));
     }
 
@@ -169,7 +174,8 @@ export function transition(state, ev, now) {
 
     case EVENT.endEarly:
       if (FINISHED.has(s)) return reject(state, 'already-finished');
-      if (!state.attempts.length) return ok(enter(state, STAGE.completed, now, { paused: false, endedEarly: true, endedAt: now }));
+      if (!state.attempts.length)
+        return ok(enter(state, STAGE.completed, now, { paused: false, endedEarly: true, endedAt: now }));
       return ok(enter(state, STAGE.summary, now, { paused: false, endedEarly: true }));
 
     case EVENT.error:
@@ -192,14 +198,32 @@ export function transition(state, ev, now) {
 export function assistance(state) {
   const s = state.stage;
   const G = GUIDANCE_LEVELS[state.guidance];
-  const none = { independent: true, questions: 0, objective: false, correction: false, guidesAfterObserve: OVERLAYS.none, constructionGuide: false, liveFeedback: false };
+  const none = {
+    independent: true,
+    questions: 0,
+    objective: false,
+    correction: false,
+    guidesAfterObserve: OVERLAYS.none,
+    constructionGuide: false,
+    liveFeedback: false,
+  };
   if (s === STAGE.transfer) return none;
   if (s === STAGE.observe) {
-    return Object.assign({}, none, { independent: state.guidance === GUIDANCE.independent, questions: G.questions, guidesAfterObserve: G.overlaysAfterObserve, constructionGuide: state.guidance !== GUIDANCE.independent });
+    return Object.assign({}, none, {
+      independent: state.guidance === GUIDANCE.independent,
+      questions: G.questions,
+      guidesAfterObserve: G.overlaysAfterObserve,
+      constructionGuide: state.guidance !== GUIDANCE.independent,
+    });
   }
   if (s === STAGE.correction) return Object.assign({}, none, { independent: false, objective: true, correction: true });
-  if (s === STAGE.focused || s === STAGE.warmup) return Object.assign({}, none, { independent: state.guidance === GUIDANCE.independent, objective: G.objectiveWhileDrawing });
-  if (s === STAGE.review || s === STAGE.summary) return Object.assign({}, none, { independent: false, constructionGuide: true });
+  if (s === STAGE.focused || s === STAGE.warmup)
+    return Object.assign({}, none, {
+      independent: state.guidance === GUIDANCE.independent,
+      objective: G.objectiveWhileDrawing,
+    });
+  if (s === STAGE.review || s === STAGE.summary)
+    return Object.assign({}, none, { independent: false, constructionGuide: true });
   return none;
 }
 

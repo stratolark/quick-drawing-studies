@@ -1,272 +1,306 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Quick Studies</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&amp;display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;display=swap">
-</head>
-<body>
-<div id="app">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quick Studies</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&amp;display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;display=swap"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <section id="home" class="screen is-active" aria-label="Start">
+        <div class="wrap">
+          <header class="top">
+            <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Quick Studies</div>
+            <div class="stats" id="stats"></div>
+          </header>
 
-  <section id="home" class="screen is-active" aria-label="Start">
-    <div class="wrap">
-      <header class="top">
-        <div class="brand"><span class="brand-mark" aria-hidden="true"></span>Quick Studies</div>
-        <div class="stats" id="stats"></div>
-      </header>
-
-      <div class="hero">
-        <div>
-          <h1>Draw the pose, not the details.</h1>
-          <p>Look at a reference first, draw it against the clock, then see what drifted and fix it. A test on a new reference shows whether the fix stuck.</p>
-        </div>
-        <figure class="hero-demo">
-          <canvas id="heroCanvas" width="750" height="1000" aria-label="A generated mannequin reference with its line of action drawn in red"></canvas>
-          <figcaption id="heroCap">Today's sample pose, with its line of action in red.</figcaption>
-        </figure>
-      </div>
-
-      <section class="setup practice" id="practice" aria-labelledby="practiceTitle">
-        <div class="focus-card" id="todayCard"></div>
-        <h2 id="practiceTitle">Practice</h2>
-        <div class="modes" id="typeCards" role="radiogroup" aria-label="Session type"></div>
-        <div class="opts">
-          <div class="opt">
-            <label class="opt-label" for="objectiveSelect">Skill</label>
-            <select class="select" id="objectiveSelect"></select>
-            <span class="opt-note" id="objectiveNote"></span>
+          <div class="hero">
+            <div>
+              <h1>Draw the pose, not the details.</h1>
+              <p>
+                Look at a reference first, draw it against the clock, then see what drifted and fix it. A test on a new
+                reference shows whether the fix stuck.
+              </p>
+            </div>
+            <figure class="hero-demo">
+              <canvas
+                id="heroCanvas"
+                width="750"
+                height="1000"
+                aria-label="A generated mannequin reference with its line of action drawn in red"
+              ></canvas>
+              <figcaption id="heroCap">Today's sample pose, with its line of action in red.</figcaption>
+            </figure>
           </div>
-          <div class="opt">
-            <span class="opt-label" id="lblGuidance">Guidance</span>
-            <div class="seg" id="segGuidance" role="radiogroup" aria-labelledby="lblGuidance"></div>
-            <span class="opt-note" id="guidanceNote"></span>
+
+          <section class="setup practice" id="practice" aria-labelledby="practiceTitle">
+            <div class="focus-card" id="todayCard"></div>
+            <h2 id="practiceTitle">Practice</h2>
+            <div class="modes" id="typeCards" role="radiogroup" aria-label="Session type"></div>
+            <div class="opts">
+              <div class="opt">
+                <label class="opt-label" for="objectiveSelect">Skill</label>
+                <select class="select" id="objectiveSelect"></select>
+                <span class="opt-note" id="objectiveNote"></span>
+              </div>
+              <div class="opt">
+                <span class="opt-label" id="lblGuidance">Guidance</span>
+                <div class="seg" id="segGuidance" role="radiogroup" aria-labelledby="lblGuidance"></div>
+                <span class="opt-note" id="guidanceNote"></span>
+              </div>
+            </div>
+            <details class="stages" id="stagesBox">
+              <summary>Adjust stages <span class="opt-note" id="stagesSummary"></span></summary>
+              <div class="stage-rows" id="stageRows"></div>
+            </details>
+            <div class="start-row">
+              <button class="btn btn-primary btn-start" id="learnStart" type="button">Start</button>
+              <span class="opt-note" id="learnNote"></span>
+            </div>
+          </section>
+
+          <section class="setup" aria-labelledby="setupTitle">
+            <h2 id="setupTitle">Timed studies</h2>
+            <p class="hint">The original quick-fire sessions: several timed drawings in a row, compared one by one.</p>
+            <div class="modes" id="modeCards" role="radiogroup" aria-label="Mode"></div>
+            <div class="opts">
+              <div class="opt">
+                <span class="opt-label" id="lblTime">Time per drawing</span>
+                <div class="stepper" aria-labelledby="lblTime">
+                  <button type="button" id="timeDown" aria-label="Less time">&minus;</button>
+                  <output id="timeOut" aria-live="polite">15 s</output>
+                  <button type="button" id="timeUp" aria-label="More time">+</button>
+                </div>
+              </div>
+              <div class="opt">
+                <span class="opt-label" id="lblSubject">Subject</span>
+                <div class="seg" id="segSubject" role="radiogroup" aria-labelledby="lblSubject"></div>
+              </div>
+              <div class="opt">
+                <span class="opt-label" id="lblSource">References</span>
+                <div class="seg" id="segSource" role="radiogroup" aria-labelledby="lblSource"></div>
+                <span class="opt-note" id="sourceNote"></span>
+              </div>
+              <div class="opt">
+                <span class="opt-label" id="lblRounds">Drawings</span>
+                <div class="seg" id="segRounds" role="radiogroup" aria-labelledby="lblRounds"></div>
+              </div>
+              <div class="opt">
+                <span class="opt-label">After each drawing</span>
+                <label class="toggle" for="reviewEach"
+                  ><input type="checkbox" id="reviewEach" /><span>Stop to compare and get feedback</span></label
+                >
+              </div>
+            </div>
+            <div class="start-row">
+              <button class="btn btn-start" id="startBtn" type="button">Start timed studies</button>
+              <span class="opt-note" id="startNote"></span>
+            </div>
+          </section>
+
+          <div class="lower">
+            <section class="panel" aria-labelledby="refsTitle">
+              <div class="panel-head">
+                <h2 id="refsTitle">My references</h2>
+                <span class="opt-note" id="refCount"></span>
+              </div>
+              <p class="hint">
+                Add your own photos or art references: characters, creatures, poses, environments. Tag each one so
+                sessions can pick the right kind.
+              </p>
+              <div class="upload-row">
+                <label class="sr" for="uploadCat">Tag new references as</label>
+                <select id="uploadCat">
+                  <option value="movement">Tag as movement</option>
+                  <option value="perspective">Tag as perspective</option>
+                  <option value="other">Tag as other</option>
+                </select>
+                <button class="btn" type="button" id="uploadBtn">Add images</button>
+                <input type="file" id="fileInput" accept="image/*" multiple hidden />
+              </div>
+              <div class="drop" id="dropZone">Or drop image files here</div>
+              <div class="status" id="refStatus" role="status"></div>
+              <div class="ref-grid" id="refGrid"></div>
+            </section>
+            <section class="panel" aria-labelledby="progTitle">
+              <div class="panel-head">
+                <h2 id="progTitle">Progress</h2>
+                <button class="btn btn-ghost" type="button" id="openProgress">Details</button>
+              </div>
+              <div id="progressBrief"></div>
+              <ol class="history" id="historyList"></ol>
+            </section>
           </div>
-        </div>
-        <details class="stages" id="stagesBox">
-          <summary>Adjust stages <span class="opt-note" id="stagesSummary"></span></summary>
-          <div class="stage-rows" id="stageRows"></div>
-        </details>
-        <div class="start-row">
-          <button class="btn btn-primary btn-start" id="learnStart" type="button">Start</button>
-          <span class="opt-note" id="learnNote"></span>
         </div>
       </section>
 
-      <section class="setup" aria-labelledby="setupTitle">
-        <h2 id="setupTitle">Timed studies</h2>
-        <p class="hint">The original quick-fire sessions: several timed drawings in a row, compared one by one.</p>
-        <div class="modes" id="modeCards" role="radiogroup" aria-label="Mode"></div>
-        <div class="opts">
-          <div class="opt">
-            <span class="opt-label" id="lblTime">Time per drawing</span>
-            <div class="stepper" aria-labelledby="lblTime">
-              <button type="button" id="timeDown" aria-label="Less time">&minus;</button>
-              <output id="timeOut" aria-live="polite">15 s</output>
-              <button type="button" id="timeUp" aria-label="More time">+</button>
+      <section id="draw" class="screen" aria-label="Drawing">
+        <header class="bar">
+          <div class="bar-left">
+            <button class="btn btn-ghost" type="button" id="quitBtn">Quit</button>
+            <div class="bar-title">
+              <strong id="drawMode">Gesture</strong><span id="drawRound">Drawing 1 of 5</span>
             </div>
           </div>
-          <div class="opt">
-            <span class="opt-label" id="lblSubject">Subject</span>
-            <div class="seg" id="segSubject" role="radiogroup" aria-labelledby="lblSubject"></div>
+          <div class="bar-right">
+            <span class="badge" id="drawBadge" hidden></span>
+            <button class="btn btn-ghost" type="button" id="pauseBtn" hidden>Pause</button>
+            <div class="timer" id="timer" aria-live="off">15</div>
+            <button class="btn" type="button" id="finishBtn">Done</button>
           </div>
-          <div class="opt">
-            <span class="opt-label" id="lblSource">References</span>
-            <div class="seg" id="segSource" role="radiogroup" aria-labelledby="lblSource"></div>
-            <span class="opt-note" id="sourceNote"></span>
+        </header>
+        <div class="timebar" aria-hidden="true"><div id="timebarFill"></div></div>
+        <div class="stage" id="stage">
+          <div class="pane pane-ref" id="refPane"><img id="refImg" alt="Reference image" /></div>
+          <div class="pane pane-canvas is-locked" id="canvasPane">
+            <canvas id="sketch" aria-label="Drawing canvas"></canvas>
+            <canvas id="preview" aria-hidden="true"></canvas>
           </div>
-          <div class="opt">
-            <span class="opt-label" id="lblRounds">Drawings</span>
-            <div class="seg" id="segRounds" role="radiogroup" aria-labelledby="lblRounds"></div>
-          </div>
-          <div class="opt">
-            <span class="opt-label">After each drawing</span>
-            <label class="toggle" for="reviewEach"><input type="checkbox" id="reviewEach"><span>Stop to compare and get feedback</span></label>
+          <div class="ready" id="ready" hidden>
+            <div class="ready-inner">
+              <div class="ready-round" id="readyRound"></div>
+              <div class="ready-mode" id="readyMode"></div>
+              <div class="ready-focus" id="readyFocus"></div>
+              <div class="ready-count" id="readyCount"></div>
+              <div class="ready-hint" id="readyHint">Tap to start now</div>
+            </div>
           </div>
         </div>
-        <div class="start-row">
-          <button class="btn btn-start" id="startBtn" type="button">Start timed studies</button>
-          <span class="opt-note" id="startNote"></span>
+        <div class="toolbar" id="toolbar"></div>
+      </section>
+
+      <section id="review" class="screen" aria-label="Compare">
+        <header class="bar">
+          <div class="bar-left">
+            <button class="btn btn-ghost" type="button" id="reviewQuit">Quit</button>
+            <div class="bar-title"><strong id="reviewTitle">Time</strong><span id="reviewSub"></span></div>
+          </div>
+          <div class="bar-right">
+            <button class="btn btn-primary" type="button" id="nextBtn">Next drawing</button>
+          </div>
+        </header>
+        <div class="review-main">
+          <div class="viewer">
+            <div class="viewer-canvas" id="viewerBox">
+              <canvas id="reviewCanvas" aria-label="Your drawing on top of the reference"></canvas>
+            </div>
+            <div class="viewer-controls">
+              <div class="seg" id="segView" role="radiogroup" aria-label="View"></div>
+              <div class="seg" id="segTint" role="radiogroup" aria-label="Drawing color"></div>
+              <label class="ctl" for="opacity"
+                >Drawing <input type="range" id="opacity" min="0" max="100" value="90"
+              /></label>
+              <label class="ctl" for="fadeRef"><input type="checkbox" id="fadeRef" /> Fade reference</label>
+              <label class="ctl" for="alignScale"
+                >Size <input type="range" id="alignScale" min="60" max="140" value="100"
+              /></label>
+              <button class="btn btn-ghost" type="button" id="alignReset">Reset position</button>
+            </div>
+            <div class="annot-ctl" id="annotCtl" hidden></div>
+            <p class="coach-note" id="alignHint">
+              Drag your drawing to line it up with the reference. Drawing at a different size is fine: use Size to match
+              it.
+            </p>
+          </div>
+          <aside class="coach" id="coach" aria-live="polite"></aside>
         </div>
       </section>
 
-      <div class="lower">
-        <section class="panel" aria-labelledby="refsTitle">
-          <div class="panel-head">
-            <h2 id="refsTitle">My references</h2>
-            <span class="opt-note" id="refCount"></span>
+      <section id="observe" class="screen" aria-label="Observe">
+        <header class="bar">
+          <div class="bar-left">
+            <button class="btn btn-ghost" type="button" id="observeQuit">Quit</button>
+            <div class="bar-title"><strong>Observe</strong><span id="observeSub"></span></div>
           </div>
-          <p class="hint">Add your own photos or art references: characters, creatures, poses, environments. Tag each one so sessions can pick the right kind.</p>
-          <div class="upload-row">
-            <label class="sr" for="uploadCat">Tag new references as</label>
-            <select id="uploadCat">
-              <option value="movement">Tag as movement</option>
-              <option value="perspective">Tag as perspective</option>
-              <option value="other">Tag as other</option>
-            </select>
-            <button class="btn" type="button" id="uploadBtn">Add images</button>
-            <input type="file" id="fileInput" accept="image/*" multiple hidden>
+          <div class="bar-right">
+            <span class="soft-timer" id="observeClock" title="Suggested time. Nothing happens when it runs out."></span>
+            <button class="btn btn-ghost" type="button" id="observeSkip">Skip</button>
+            <button class="btn btn-primary" type="button" id="observeDone">Start drawing</button>
           </div>
-          <div class="drop" id="dropZone">Or drop image files here</div>
-          <div class="status" id="refStatus" role="status"></div>
-          <div class="ref-grid" id="refGrid"></div>
-        </section>
-        <section class="panel" aria-labelledby="progTitle">
-          <div class="panel-head"><h2 id="progTitle">Progress</h2><button class="btn btn-ghost" type="button" id="openProgress">Details</button></div>
-          <div id="progressBrief"></div>
-          <ol class="history" id="historyList"></ol>
-        </section>
-      </div>
-    </div>
-  </section>
+        </header>
+        <div class="observe-main">
+          <div class="observe-stage" id="observeStage">
+            <div class="observe-pane" id="observePane">
+              <img id="observeImg" alt="Reference to study" />
+              <canvas id="observeCanvas" aria-label="Mark the reference"></canvas>
+            </div>
+          </div>
+          <aside class="coach observe-side" id="observeSide" aria-live="polite"></aside>
+        </div>
+      </section>
 
-  <section id="draw" class="screen" aria-label="Drawing">
-    <header class="bar">
-      <div class="bar-left">
-        <button class="btn btn-ghost" type="button" id="quitBtn">Quit</button>
-        <div class="bar-title"><strong id="drawMode">Gesture</strong><span id="drawRound">Drawing 1 of 5</span></div>
-      </div>
-      <div class="bar-right">
-        <span class="badge" id="drawBadge" hidden></span>
-        <button class="btn btn-ghost" type="button" id="pauseBtn" hidden>Pause</button>
-        <div class="timer" id="timer" aria-live="off">15</div>
-        <button class="btn" type="button" id="finishBtn">Done</button>
-      </div>
-    </header>
-    <div class="timebar" aria-hidden="true"><div id="timebarFill"></div></div>
-    <div class="stage" id="stage">
-      <div class="pane pane-ref" id="refPane"><img id="refImg" alt="Reference image"></div>
-      <div class="pane pane-canvas is-locked" id="canvasPane">
-        <canvas id="sketch" aria-label="Drawing canvas"></canvas>
-        <canvas id="preview" aria-hidden="true"></canvas>
-      </div>
-      <div class="ready" id="ready" hidden>
-        <div class="ready-inner">
-          <div class="ready-round" id="readyRound"></div>
-          <div class="ready-mode" id="readyMode"></div>
-          <div class="ready-focus" id="readyFocus"></div>
-          <div class="ready-count" id="readyCount"></div>
-          <div class="ready-hint" id="readyHint">Tap to start now</div>
+      <section id="learnSummary" class="screen" aria-label="Session summary">
+        <div class="wrap">
+          <div class="sum-head">
+            <div>
+              <h1 id="lsTitle">Session done</h1>
+              <p id="lsSub"></p>
+            </div>
+            <div class="sum-actions">
+              <button class="btn" type="button" id="lsAgain">Another session</button>
+              <button class="btn btn-primary" type="button" id="lsHome">Back to start</button>
+            </div>
+          </div>
+          <div class="ls-grid" id="lsBody"></div>
+          <div class="thumbs" id="lsThumbs"></div>
+        </div>
+      </section>
+
+      <section id="progress" class="screen" aria-label="Progress">
+        <div class="wrap">
+          <div class="sum-head">
+            <div>
+              <h1>Progress</h1>
+              <p>Measured results from independent tests are kept apart from retries and practice counts.</p>
+            </div>
+            <div class="sum-actions">
+              <button class="btn btn-primary" type="button" id="progressHome">Back to start</button>
+            </div>
+          </div>
+          <div id="progressBody" class="progress-body"></div>
+        </div>
+      </section>
+
+      <section id="summary" class="screen" aria-label="Results">
+        <div class="wrap">
+          <div class="sum-head">
+            <div>
+              <h1 id="sumTitle">Session done</h1>
+              <p id="sumSub"></p>
+            </div>
+            <div class="sum-actions">
+              <button class="btn" type="button" id="sumHome">Back to start</button>
+              <button class="btn btn-primary" type="button" id="sumAgain">Another session</button>
+            </div>
+          </div>
+          <section class="panel session-review" id="sessionReview" aria-live="polite"></section>
+          <div class="thumbs" id="thumbs"></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="dialog" id="dialog" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+      <div class="dialog-card">
+        <h2 id="dlgTitle"></h2>
+        <p id="dlgBody"></p>
+        <div class="dialog-actions">
+          <button class="btn" type="button" id="dlgCancel">Cancel</button>
+          <button class="btn btn-primary" type="button" id="dlgOk">OK</button>
         </div>
       </div>
     </div>
-    <div class="toolbar" id="toolbar"></div>
-  </section>
+    <div class="toast" id="toast" hidden role="status"></div>
 
-  <section id="review" class="screen" aria-label="Compare">
-    <header class="bar">
-      <div class="bar-left">
-        <button class="btn btn-ghost" type="button" id="reviewQuit">Quit</button>
-        <div class="bar-title"><strong id="reviewTitle">Time</strong><span id="reviewSub"></span></div>
-      </div>
-      <div class="bar-right">
-        <button class="btn btn-primary" type="button" id="nextBtn">Next drawing</button>
-      </div>
-    </header>
-    <div class="review-main">
-      <div class="viewer">
-        <div class="viewer-canvas" id="viewerBox"><canvas id="reviewCanvas" aria-label="Your drawing on top of the reference"></canvas></div>
-        <div class="viewer-controls">
-          <div class="seg" id="segView" role="radiogroup" aria-label="View"></div>
-          <div class="seg" id="segTint" role="radiogroup" aria-label="Drawing color"></div>
-          <label class="ctl" for="opacity">Drawing <input type="range" id="opacity" min="0" max="100" value="90"></label>
-          <label class="ctl" for="fadeRef"><input type="checkbox" id="fadeRef"> Fade reference</label>
-          <label class="ctl" for="alignScale">Size <input type="range" id="alignScale" min="60" max="140" value="100"></label>
-          <button class="btn btn-ghost" type="button" id="alignReset">Reset position</button>
-        </div>
-        <div class="annot-ctl" id="annotCtl" hidden></div>
-        <p class="coach-note" id="alignHint">Drag your drawing to line it up with the reference. Drawing at a different size is fine: use Size to match it.</p>
-      </div>
-      <aside class="coach" id="coach" aria-live="polite"></aside>
-    </div>
-  </section>
-
-  <section id="observe" class="screen" aria-label="Observe">
-    <header class="bar">
-      <div class="bar-left">
-        <button class="btn btn-ghost" type="button" id="observeQuit">Quit</button>
-        <div class="bar-title"><strong>Observe</strong><span id="observeSub"></span></div>
-      </div>
-      <div class="bar-right">
-        <span class="soft-timer" id="observeClock" title="Suggested time. Nothing happens when it runs out."></span>
-        <button class="btn btn-ghost" type="button" id="observeSkip">Skip</button>
-        <button class="btn btn-primary" type="button" id="observeDone">Start drawing</button>
-      </div>
-    </header>
-    <div class="observe-main">
-      <div class="observe-stage" id="observeStage">
-        <div class="observe-pane" id="observePane">
-          <img id="observeImg" alt="Reference to study">
-          <canvas id="observeCanvas" aria-label="Mark the reference"></canvas>
-        </div>
-      </div>
-      <aside class="coach observe-side" id="observeSide" aria-live="polite"></aside>
-    </div>
-  </section>
-
-  <section id="learnSummary" class="screen" aria-label="Session summary">
-    <div class="wrap">
-      <div class="sum-head">
-        <div>
-          <h1 id="lsTitle">Session done</h1>
-          <p id="lsSub"></p>
-        </div>
-        <div class="sum-actions">
-          <button class="btn" type="button" id="lsAgain">Another session</button>
-          <button class="btn btn-primary" type="button" id="lsHome">Back to start</button>
-        </div>
-      </div>
-      <div class="ls-grid" id="lsBody"></div>
-      <div class="thumbs" id="lsThumbs"></div>
-    </div>
-  </section>
-
-  <section id="progress" class="screen" aria-label="Progress">
-    <div class="wrap">
-      <div class="sum-head">
-        <div>
-          <h1>Progress</h1>
-          <p>Measured results from independent tests are kept apart from retries and practice counts.</p>
-        </div>
-        <div class="sum-actions"><button class="btn btn-primary" type="button" id="progressHome">Back to start</button></div>
-      </div>
-      <div id="progressBody" class="progress-body"></div>
-    </div>
-  </section>
-
-  <section id="summary" class="screen" aria-label="Results">
-    <div class="wrap">
-      <div class="sum-head">
-        <div>
-          <h1 id="sumTitle">Session done</h1>
-          <p id="sumSub"></p>
-        </div>
-        <div class="sum-actions">
-          <button class="btn" type="button" id="sumHome">Back to start</button>
-          <button class="btn btn-primary" type="button" id="sumAgain">Another session</button>
-        </div>
-      </div>
-      <section class="panel session-review" id="sessionReview" aria-live="polite"></section>
-      <div class="thumbs" id="thumbs"></div>
-    </div>
-  </section>
-</div>
-
-<div class="dialog" id="dialog" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
-  <div class="dialog-card">
-    <h2 id="dlgTitle"></h2>
-    <p id="dlgBody"></p>
-    <div class="dialog-actions">
-      <button class="btn" type="button" id="dlgCancel">Cancel</button>
-      <button class="btn btn-primary" type="button" id="dlgOk">OK</button>
-    </div>
-  </div>
-</div>
-<div class="toast" id="toast" hidden role="status"></div>
-
-<script type="module" src="/src/main.js"></script>
-</body>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>

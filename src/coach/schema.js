@@ -50,7 +50,10 @@ export function inspectImage(bytes) {
   if (b.length > 4 && b[0] === 0xff && b[1] === 0xd8) {
     let o = 2;
     while (o + 9 < b.length) {
-      if (b[o] !== 0xff) { o++; continue; }
+      if (b[o] !== 0xff) {
+        o++;
+        continue;
+      }
       const marker = b[o + 1];
       const len = (b[o + 2] << 8) | b[o + 3];
       // SOF0..SOF15 except DHT (C4), JPG (C8) and DAC (CC) carry the frame size.
@@ -67,7 +70,6 @@ export function inspectImage(bytes) {
 
 export function decodeBase64(s) {
   if (typeof s !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return null;
-  if (typeof Buffer !== 'undefined') return new Uint8Array(Buffer.from(s, 'base64'));
   const bin = atob(s);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -78,13 +80,15 @@ export function validateImage(img) {
   if (!img || typeof img !== 'object') return 'image must be an object';
   if (!Object.values(IMAGE_ROLE).includes(img.role)) return 'unknown image role';
   if (!IMAGE_TYPES.includes(img.mediaType)) return 'unsupported image type';
-  if (typeof img.data !== 'string' || img.data.length > Math.ceil(LIMITS.maxImageBytes * 4 / 3) + 4) return 'image too large';
+  if (typeof img.data !== 'string' || img.data.length > Math.ceil((LIMITS.maxImageBytes * 4) / 3) + 4)
+    return 'image too large';
   const bytes = decodeBase64(img.data);
   if (!bytes) return 'image is not base64';
   if (bytes.length > LIMITS.maxImageBytes) return 'image too large';
   const info = inspectImage(bytes);
   if (!info || info.type !== img.mediaType) return 'image content does not match its type';
-  if (!info.width || !info.height || info.width > LIMITS.maxImageSide || info.height > LIMITS.maxImageSide) return 'image dimensions out of range';
+  if (!info.width || !info.height || info.width > LIMITS.maxImageSide || info.height > LIMITS.maxImageSide)
+    return 'image dimensions out of range';
   return null;
 }
 
@@ -132,15 +136,33 @@ export function validateRequest(body) {
   return {
     ok: true,
     value: {
-      objectiveId: body.objectiveId, attemptType: body.attemptType, guidance: body.guidance, secs: body.secs, style,
-      evidence: evidence.map(e => ({ key: e.key, label: e.label, value: e.value, display: e.display, within: e.within === true ? true : e.within === false ? false : null })),
-      measuredIssue: issue, previousFeedback: previous,
+      objectiveId: body.objectiveId,
+      attemptType: body.attemptType,
+      guidance: body.guidance,
+      secs: body.secs,
+      style,
+      evidence: evidence.map(e => ({
+        key: e.key,
+        label: e.label,
+        value: e.value,
+        display: e.display,
+        within: e.within === true ? true : e.within === false ? false : null,
+      })),
+      measuredIssue: issue,
+      previousFeedback: previous,
       images: images.map(i => ({ role: i.role, mediaType: i.mediaType, data: i.data })),
     },
   };
 }
 
-export const FEEDBACK_FIELDS = ['whatWorked', 'mainIssue', 'whyItMatters', 'howToCorrect', 'nextExercise', 'uncertainty'];
+export const FEEDBACK_FIELDS = [
+  'whatWorked',
+  'mainIssue',
+  'whyItMatters',
+  'howToCorrect',
+  'nextExercise',
+  'uncertainty',
+];
 export const VISUAL_EVIDENCE = 'visual';
 
 /* JSON schema for structured output. Evidence may only cite the metric keys sent with this request. */
@@ -154,8 +176,13 @@ export function feedbackJsonSchema(evidenceKeys) {
       evidence: {
         type: 'array',
         items: {
-          type: 'object', additionalProperties: false, required: ['source', 'observation'],
-          properties: { source: { type: 'string', enum: [...new Set(evidenceKeys.concat(VISUAL_EVIDENCE))] }, observation: str },
+          type: 'object',
+          additionalProperties: false,
+          required: ['source', 'observation'],
+          properties: {
+            source: { type: 'string', enum: [...new Set(evidenceKeys.concat(VISUAL_EVIDENCE))] },
+            observation: str,
+          },
         },
       },
     }),
@@ -185,7 +212,8 @@ function scrub(text, allowed, flags) {
 
 /* Validate and clean a model response. Throws { code: invalid_response } when the shape is wrong. */
 export function sanitizeFeedback(raw, evidence) {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw { code: ERROR_CODE.invalidResponse, message: 'response is not an object' };
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw))
+    throw { code: ERROR_CODE.invalidResponse, message: 'response is not an object' };
   const flags = new Set();
   const allowed = allowedNumbers(evidence || []);
   const keys = new Set((evidence || []).map(e => e.key).concat(VISUAL_EVIDENCE));
@@ -198,7 +226,10 @@ export function sanitizeFeedback(raw, evidence) {
   const ev = Array.isArray(raw.evidence) ? raw.evidence : [];
   out.evidence = [];
   for (const e of ev.slice(0, LIMITS.maxEvidence)) {
-    if (!e || typeof e.observation !== 'string' || !keys.has(e.source)) { flags.add('dropped-evidence'); continue; }
+    if (!e || typeof e.observation !== 'string' || !keys.has(e.source)) {
+      flags.add('dropped-evidence');
+      continue;
+    }
     out.evidence.push({ source: e.source, observation: scrub(clip(e.observation, 300), allowed, flags) });
   }
   return { feedback: out, flags: [...flags] };

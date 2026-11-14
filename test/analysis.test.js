@@ -17,7 +17,8 @@ function rectMask(w, h, x0, y0, x1, y1) {
 }
 
 describe('shape analysis', () => {
-  const W = 60, H = 80;
+  const W = 60,
+    H = 80;
   const ref = { mask: rectMask(W, H, 20, 10, 40, 70), w: W, h: H }; // 20 wide, 60 tall
 
   it('matches the same silhouette drawn smaller and shifted', () => {
@@ -46,12 +47,15 @@ describe('shape analysis', () => {
 
   it('reports missing silhouettes and empty drawings honestly', () => {
     expect(analyzeShapes({ ref: null, drawn: null }).status).toBe(ANALYSIS_STATUS.unavailable);
-    expect(analyzeShapes({ ref, drawn: { mask: new Uint8Array(W * H), w: W, h: H } }).status).toBe(ANALYSIS_STATUS.empty);
+    expect(analyzeShapes({ ref, drawn: { mask: new Uint8Array(W * H), w: W, h: H } }).status).toBe(
+      ANALYSIS_STATUS.empty,
+    );
   });
 });
 
 describe('values analysis', () => {
-  const W = 20, H = 10;
+  const W = 20,
+    H = 10;
   /* Reference: light background, mid band, dark block on the right. */
   function refLum() {
     const l = new Float32Array(W * H);
@@ -60,7 +64,8 @@ describe('values analysis', () => {
   }
   function tones(darkFrom, midFrom) {
     const t = new Uint8Array(W * H);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) t[y * W + x] = x >= darkFrom ? TONE.dark : x >= midFrom ? TONE.mid : TONE.light;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) t[y * W + x] = x >= darkFrom ? TONE.dark : x >= midFrom ? TONE.mid : TONE.light;
     return t;
   }
 
@@ -92,7 +97,9 @@ describe('values analysis', () => {
   });
 
   it('treats an almost blank study as empty', () => {
-    expect(analyzeValues({ refLum: refLum(), drawnTones: new Uint8Array(W * H), w: W, h: H }).status).toBe(ANALYSIS_STATUS.empty);
+    expect(analyzeValues({ refLum: refLum(), drawnTones: new Uint8Array(W * H), w: W, h: H }).status).toBe(
+      ANALYSIS_STATUS.empty,
+    );
   });
 
   it('reads drawing pixels as paper, mid or dark', () => {
@@ -104,14 +111,24 @@ describe('values analysis', () => {
 });
 
 describe('issue ranking', () => {
-  const line = n => Array.from({ length: n }, (_, i) => [400 - 110 * Math.sin(Math.PI * i / (n - 1)), 120 + 760 * i / (n - 1)]);
+  const line = n =>
+    Array.from({ length: n }, (_, i) => [400 - 110 * Math.sin((Math.PI * i) / (n - 1)), 120 + (760 * i) / (n - 1)]);
   const reference = { actionLine: line(30), width: 750, height: 1000 };
   const stroke = pairs => ({ tool: 'pen', erase: false, pts: pairs.map(([x, y]) => ({ x, y })) });
-  const rotated = deg => { const a = deg * Math.PI / 180; return line(30).map(([x, y]) => [375 + (x - 375) * Math.cos(a) - (y - 500) * Math.sin(a), 500 + (x - 375) * Math.sin(a) + (y - 500) * Math.cos(a)]); };
+  const rotated = deg => {
+    const a = (deg * Math.PI) / 180;
+    return line(30).map(([x, y]) => [
+      375 + (x - 375) * Math.cos(a) - (y - 500) * Math.sin(a),
+      500 + (x - 375) * Math.sin(a) + (y - 500) * Math.cos(a),
+    ]);
+  };
 
   it('puts the issue matching the objective first', () => {
     // A tilted line that is also too straight: tilt matters most for the torso-tilt objective.
-    const straightTilted = [[400, 120], [46, 880]]; // about 25° of tilt and no bend: two comparable issues
+    const straightTilted = [
+      [400, 120],
+      [46, 880],
+    ]; // about 25° of tilt and no bend: two comparable issues
     const a = analyzeGesture({ strokes: [stroke(straightTilted)], reference, canvas: { w: 750, h: 1000 } });
     expect(rankIssues(a, OBJECTIVES['gesture.torso-tilt']).primary.id).toBe('gesture.orientation');
     // Without a focus metric the larger measured error wins.
@@ -136,14 +153,35 @@ describe('issue ranking', () => {
   });
 
   it('does not invent issues for unmeasurable attempts', () => {
-    expect(rankIssues({ status: ANALYSIS_STATUS.unavailable, evaluator: 'gesture-line', metrics: {} }, OBJECTIVES['gesture.line-of-action'])).toEqual({ primary: null, others: [], measurable: false });
+    expect(
+      rankIssues(
+        { status: ANALYSIS_STATUS.unavailable, evaluator: 'gesture-line', metrics: {} },
+        OBJECTIVES['gesture.line-of-action'],
+      ),
+    ).toEqual({ primary: null, others: [], measurable: false });
   });
 });
 
 describe('before-and-after comparison', () => {
-  const ref = { actionLine: Array.from({ length: 30 }, (_, i) => [400 - 100 * Math.sin(Math.PI * i / 29), 120 + 760 * i / 29]), width: 750, height: 1000 };
-  const go = pairs => analyzeGesture({ strokes: [{ tool: 'pen', pts: pairs.map(([x, y]) => ({ x, y })) }], reference: ref, canvas: { w: 750, h: 1000 } });
-  const tilt = deg => ref.actionLine.map(([x, y]) => { const a = deg * Math.PI / 180; return [375 + (x - 375) * Math.cos(a) - (y - 500) * Math.sin(a), 500 + (x - 375) * Math.sin(a) + (y - 500) * Math.cos(a)]; });
+  const ref = {
+    actionLine: Array.from({ length: 30 }, (_, i) => [400 - 100 * Math.sin((Math.PI * i) / 29), 120 + (760 * i) / 29]),
+    width: 750,
+    height: 1000,
+  };
+  const go = pairs =>
+    analyzeGesture({
+      strokes: [{ tool: 'pen', pts: pairs.map(([x, y]) => ({ x, y })) }],
+      reference: ref,
+      canvas: { w: 750, h: 1000 },
+    });
+  const tilt = deg =>
+    ref.actionLine.map(([x, y]) => {
+      const a = (deg * Math.PI) / 180;
+      return [
+        375 + (x - 375) * Math.cos(a) - (y - 500) * Math.sin(a),
+        500 + (x - 375) * Math.sin(a) + (y - 500) * Math.cos(a),
+      ];
+    });
 
   it('reports a measured improvement', () => {
     const c = compareAnalyses(go(tilt(22)), go(tilt(5)));
@@ -155,7 +193,9 @@ describe('before-and-after comparison', () => {
     expect(c.rows.find(r => r.key === 'orientationErrorDeg').verdict).toBe(VERDICT.similar);
   });
   it('reports a measured regression', () => {
-    expect(compareAnalyses(go(tilt(3)), go(tilt(20))).rows.find(r => r.key === 'orientationErrorDeg').verdict).toBe(VERDICT.worse);
+    expect(compareAnalyses(go(tilt(3)), go(tilt(20))).rows.find(r => r.key === 'orientationErrorDeg').verdict).toBe(
+      VERDICT.worse,
+    );
   });
   it('refuses to compare unmeasured attempts', () => {
     const c = compareAnalyses({ status: ANALYSIS_STATUS.empty }, go(tilt(3)));

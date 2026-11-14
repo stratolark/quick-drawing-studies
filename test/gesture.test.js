@@ -16,17 +16,38 @@ function cCurve(n = 40, bow = 110) {
 const REF_LINE = cCurve();
 const reference = Object.assign({ actionLine: REF_LINE }, REF);
 
-const stroke = (pairs, extra) => Object.assign({ tool: 'pen', erase: false, pts: pairs.map(([x, y]) => ({ x, y, p: 0.6 })) }, extra);
+const stroke = (pairs, extra) =>
+  Object.assign({ tool: 'pen', erase: false, pts: pairs.map(([x, y]) => ({ x, y, p: 0.6 })) }, extra);
 const map = (pairs, f) => pairs.map(([x, y]) => f(x, y));
-const center = pairs => { let x = 0, y = 0; for (const p of pairs) { x += p[0]; y += p[1]; } return [x / pairs.length, y / pairs.length]; };
+const center = pairs => {
+  let x = 0,
+    y = 0;
+  for (const p of pairs) {
+    x += p[0];
+    y += p[1];
+  }
+  return [x / pairs.length, y / pairs.length];
+};
 function rotate(pairs, deg) {
   const [cx, cy] = center(pairs);
-  const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  const a = (deg * Math.PI) / 180,
+    c = Math.cos(a),
+    s = Math.sin(a);
   return map(pairs, (x, y) => [cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c]);
 }
-function mirrorX(pairs) { const [cx] = center(pairs); return map(pairs, (x, y) => [2 * cx - x, y]); }
+function mirrorX(pairs) {
+  const [cx] = center(pairs);
+  return map(pairs, (x, y) => [2 * cx - x, y]);
+}
 /* Deterministic noise so tests never flake. */
-function jitter(pairs, amp) { let s = 7; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647 - 0.5; }; return map(pairs, (x, y) => [x + r() * 2 * amp, y + r() * 2 * amp]); }
+function jitter(pairs, amp) {
+  let s = 7;
+  const r = () => {
+    s = (s * 16807) % 2147483647;
+    return s / 2147483647 - 0.5;
+  };
+  return map(pairs, (x, y) => [x + r() * 2 * amp, y + r() * 2 * amp]);
+}
 
 const run = (strokes, extra) => analyzeGesture(Object.assign({ strokes, reference, canvas: CANVAS }, extra));
 
@@ -78,7 +99,12 @@ describe('gesture analysis', () => {
   });
 
   it('reports a line drawn too straight', () => {
-    const a = run([stroke([[400, 120], [380, 880]])]);
+    const a = run([
+      stroke([
+        [400, 120],
+        [380, 880],
+      ]),
+    ]);
     expect(a.metrics.drawnCurveType).toBe('straight');
     expect(a.metrics.curvatureDirectionMatch).toBe(null);
     expect(a.metrics.bowError).toBeGreaterThan(GESTURE_TOLERANCES.bow);
@@ -92,7 +118,20 @@ describe('gesture analysis', () => {
   });
 
   it('picks the long main line over short limb strokes, wherever it is in the order', () => {
-    const limbs = [stroke([[300, 300], [360, 360]]), stroke([[420, 500], [500, 540]]), stroke([[350, 700], [330, 780]])];
+    const limbs = [
+      stroke([
+        [300, 300],
+        [360, 360],
+      ]),
+      stroke([
+        [420, 500],
+        [500, 540],
+      ]),
+      stroke([
+        [350, 700],
+        [330, 780],
+      ]),
+    ];
     const a = run([limbs[0], limbs[1], stroke(rotate(REF_LINE, 12)), limbs[2]]);
     expect(a.status).toBe(ANALYSIS_STATUS.measured);
     expect(a.metrics.orientationErrorDeg).toBeGreaterThan(9);
@@ -108,8 +147,14 @@ describe('gesture analysis', () => {
   });
 
   it('flags two equally plausible lines at different angles as ambiguous, and honours the learner pick', () => {
-    const vertical = [[380, 120], [380, 880]];
-    const tilted = [[620, 150], [160, 860]];
+    const vertical = [
+      [380, 120],
+      [380, 880],
+    ];
+    const tilted = [
+      [620, 150],
+      [160, 860],
+    ];
     const a = run([stroke(vertical), stroke(tilted)]);
     expect(a.status).toBe(ANALYSIS_STATUS.ambiguous);
     expect(a.selection.source).toBe('auto');
@@ -130,7 +175,9 @@ describe('gesture analysis', () => {
     const a = analyzeGesture({ strokes: [stroke(REF_LINE)], reference: { width: 750, height: 1000 }, canvas: CANVAS });
     expect(a.status).toBe(ANALYSIS_STATUS.unavailable);
     expect(a.metrics).toEqual({});
-    expect(analyzeGesture({ strokes: [stroke(REF_LINE)], reference: null, canvas: CANVAS }).status).toBe(ANALYSIS_STATUS.unavailable);
+    expect(analyzeGesture({ strokes: [stroke(REF_LINE)], reference: null, canvas: CANVAS }).status).toBe(
+      ANALYSIS_STATUS.unavailable,
+    );
   });
 
   it('does not read a scribble as a line of action', () => {

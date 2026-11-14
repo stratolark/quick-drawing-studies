@@ -15,7 +15,8 @@ export const COLORS = Object.freeze({
 });
 export const GUIDE_STEP_MS = 1300;
 export const GUIDE_LABEL = 'Construction Guide';
-export const GUIDE_NOTE = 'Generated from the 3D scene. It shows one way to build the drawing, not a real artist\'s stroke order.';
+export const GUIDE_NOTE =
+  "Generated from the 3D scene. It shows one way to build the drawing, not a real artist's stroke order.";
 
 const xy = p => (Array.isArray(p) ? p : [p.x, p.y]);
 
@@ -38,17 +39,23 @@ function partialPolyline(ctx, pts, t) {
 
 function stroke(ctx, color, width, dash, fn) {
   ctx.save();
-  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   if (dash) ctx.setLineDash(dash);
   fn();
   ctx.restore();
 }
 
 function fillCells(ctx, tones, gw, gh, w, h, tone, color, t) {
-  const cw = w / gw, ch = h / gh, rows = Math.ceil(gh * t);
+  const cw = w / gw,
+    ch = h / gh,
+    rows = Math.ceil(gh * t);
   ctx.save();
   ctx.fillStyle = color;
-  for (let y = 0; y < rows; y++) for (let x = 0; x < gw; x++) if (tones[y * gw + x] === tone) ctx.fillRect(x * cw, y * ch, cw + 0.5, ch + 0.5);
+  for (let y = 0; y < rows; y++)
+    for (let x = 0; x < gw; x++) if (tones[y * gw + x] === tone) ctx.fillRect(x * cw, y * ch, cw + 0.5, ch + 0.5);
   ctx.restore();
 }
 
@@ -57,28 +64,84 @@ function fillCells(ctx, tones, gw, gh, w, h, tone, color, t) {
 function figureSteps(meta) {
   const g = meta.geometry || {};
   if (!g.actionLine || !g.landmarks) return [];
-  const L = g.landmarks, R = g.massRadii || {};
+  const L = g.landmarks,
+    R = g.massRadii || {};
   const W = Math.max(3, meta.width / 160);
-  const limbs = [['shoulderL', 'elbowL', 'handL'], ['shoulderR', 'elbowR', 'handR'], ['hipL', 'kneeL', 'ankleL'], ['hipR', 'kneeR', 'ankleR']];
+  const limbs = [
+    ['shoulderL', 'elbowL', 'handL'],
+    ['shoulderR', 'elbowR', 'handR'],
+    ['hipL', 'kneeL', 'ankleL'],
+    ['hipR', 'kneeR', 'ankleR'],
+  ];
   const steps = [
-    { label: 'Find the main movement axis', draw: (ctx, t) => stroke(ctx, COLORS.reference, W * 1.6, null, () => partialPolyline(ctx, g.actionLine, t)) },
-    { label: 'Place the head, ribcage and pelvis', draw: (ctx, t) => stroke(ctx, COLORS.guide, W, null, () => {
-      for (const k of ['head', 'chest', 'pelvis']) { if (!L[k] || !R[k]) continue; ctx.beginPath(); ctx.arc(L[k][0], L[k][1], R[k], -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t); ctx.stroke(); }
-    }) },
-    { label: 'Add the tilt of shoulders and hips, then the limb directions', draw: (ctx, t) => stroke(ctx, COLORS.guide, W * 0.8, null, () => {
-      partialPolyline(ctx, [L.shoulderL, L.shoulderR], t);
-      partialPolyline(ctx, [L.hipL, L.hipR], t);
-      for (const chain of limbs) partialPolyline(ctx, chain.map(k => L[k]), t);
-    }) },
+    {
+      label: 'Find the main movement axis',
+      draw: (ctx, t) => stroke(ctx, COLORS.reference, W * 1.6, null, () => partialPolyline(ctx, g.actionLine, t)),
+    },
+    {
+      label: 'Place the head, ribcage and pelvis',
+      draw: (ctx, t) =>
+        stroke(ctx, COLORS.guide, W, null, () => {
+          for (const k of ['head', 'chest', 'pelvis']) {
+            if (!L[k] || !R[k]) continue;
+            ctx.beginPath();
+            ctx.arc(L[k][0], L[k][1], R[k], -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t);
+            ctx.stroke();
+          }
+        }),
+    },
+    {
+      label: 'Add the tilt of shoulders and hips, then the limb directions',
+      draw: (ctx, t) =>
+        stroke(ctx, COLORS.guide, W * 0.8, null, () => {
+          partialPolyline(ctx, [L.shoulderL, L.shoulderR], t);
+          partialPolyline(ctx, [L.hipL, L.hipR], t);
+          for (const chain of limbs)
+            partialPolyline(
+              ctx,
+              chain.map(k => L[k]),
+              t,
+            );
+        }),
+    },
   ];
   if (g.silhouette && g.silhouette.bbox) {
     const b = g.silhouette.bbox;
-    steps.push({ label: 'Check the overall silhouette: height against width', draw: (ctx, t) => stroke(ctx, COLORS.mine, W * 0.6, [W * 3, W * 2], () => partialPolyline(ctx, [[b.x, b.y], [b.x + b.w, b.y], [b.x + b.w, b.y + b.h], [b.x, b.y + b.h], [b.x, b.y]], t)) });
+    steps.push({
+      label: 'Check the overall silhouette: height against width',
+      draw: (ctx, t) =>
+        stroke(ctx, COLORS.mine, W * 0.6, [W * 3, W * 2], () =>
+          partialPolyline(
+            ctx,
+            [
+              [b.x, b.y],
+              [b.x + b.w, b.y],
+              [b.x + b.w, b.y + b.h],
+              [b.x, b.y + b.h],
+              [b.x, b.y],
+            ],
+            t,
+          ),
+        ),
+    });
   }
   return steps;
 }
 
-const BOX_EDGES = [[0, 1], [0, 2], [1, 3], [2, 3], [4, 5], [4, 6], [5, 7], [6, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+const BOX_EDGES = [
+  [0, 1],
+  [0, 2],
+  [1, 3],
+  [2, 3],
+  [4, 5],
+  [4, 6],
+  [5, 7],
+  [6, 7],
+  [0, 4],
+  [1, 5],
+  [2, 6],
+  [3, 7],
+];
 
 function perspectiveSteps(meta) {
   const g = meta.geometry || {};
@@ -86,17 +149,47 @@ function perspectiveSteps(meta) {
   const W = Math.max(2, meta.width / 250);
   const vps = g.vanishingPoints || [];
   const forms = g.forms || [];
-  const steps = [{ label: 'Find the horizon', draw: (ctx, t) => stroke(ctx, COLORS.reference, W * 1.5, null, () => partialPolyline(ctx, [[0, g.horizon.y], [meta.width, g.horizon.y]], t)) }];
+  const steps = [
+    {
+      label: 'Find the horizon',
+      draw: (ctx, t) =>
+        stroke(ctx, COLORS.reference, W * 1.5, null, () =>
+          partialPolyline(
+            ctx,
+            [
+              [0, g.horizon.y],
+              [meta.width, g.horizon.y],
+            ],
+            t,
+          ),
+        ),
+    },
+  ];
   if (vps.length) {
-    const starts = forms.length ? forms.flatMap(f => [f.corners[0], f.corners[3], f.corners[4], f.corners[7]]) : [[0, 0], [meta.width, 0], [0, meta.height], [meta.width, meta.height]];
-    steps.push({ label: 'Run the receding edges toward the vanishing points', draw: (ctx, t) => stroke(ctx, COLORS.reference, W * 0.7, [W * 3, W * 2], () => {
-      for (const vp of vps) for (const s of starts) partialPolyline(ctx, [s, vp], t);
-    }) });
+    const starts = forms.length
+      ? forms.flatMap(f => [f.corners[0], f.corners[3], f.corners[4], f.corners[7]])
+      : [
+          [0, 0],
+          [meta.width, 0],
+          [0, meta.height],
+          [meta.width, meta.height],
+        ];
+    steps.push({
+      label: 'Run the receding edges toward the vanishing points',
+      draw: (ctx, t) =>
+        stroke(ctx, COLORS.reference, W * 0.7, [W * 3, W * 2], () => {
+          for (const vp of vps) for (const s of starts) partialPolyline(ctx, [s, vp], t);
+        }),
+    });
   }
   if (forms.length) {
-    steps.push({ label: 'Build each box as a see-through form', draw: (ctx, t) => stroke(ctx, COLORS.mine, W, null, () => {
-      for (const f of forms) for (const [a, b] of BOX_EDGES) partialPolyline(ctx, [f.corners[a], f.corners[b]], t);
-    }) });
+    steps.push({
+      label: 'Build each box as a see-through form',
+      draw: (ctx, t) =>
+        stroke(ctx, COLORS.mine, W, null, () => {
+          for (const f of forms) for (const [a, b] of BOX_EDGES) partialPolyline(ctx, [f.corners[a], f.corners[b]], t);
+        }),
+    });
   }
   return steps;
 }
@@ -109,15 +202,33 @@ function valueSteps(meta, darkGrid) {
     const a = [fromRight ? meta.width * 0.92 : meta.width * 0.08, meta.height * (g.light.fromAbove ? 0.08 : 0.92)];
     const b = [meta.width / 2, meta.height / 2];
     const W = Math.max(3, meta.width / 160);
-    steps.push({ label: `Find the light: it comes from the ${g.light.side}${g.light.fromAbove ? ', above' : ''}`, draw: (ctx, t) => stroke(ctx, COLORS.reference, W, null, () => {
-      partialPolyline(ctx, [a, b], t);
-      if (t >= 1) { const ang = Math.atan2(b[1] - a[1], b[0] - a[0]); ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(b[0] - W * 5 * Math.cos(ang - 0.4), b[1] - W * 5 * Math.sin(ang - 0.4)); ctx.moveTo(b[0], b[1]); ctx.lineTo(b[0] - W * 5 * Math.cos(ang + 0.4), b[1] - W * 5 * Math.sin(ang + 0.4)); ctx.stroke(); }
-    }) });
+    steps.push({
+      label: `Find the light: it comes from the ${g.light.side}${g.light.fromAbove ? ', above' : ''}`,
+      draw: (ctx, t) =>
+        stroke(ctx, COLORS.reference, W, null, () => {
+          partialPolyline(ctx, [a, b], t);
+          if (t >= 1) {
+            const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+            ctx.beginPath();
+            ctx.moveTo(b[0], b[1]);
+            ctx.lineTo(b[0] - W * 5 * Math.cos(ang - 0.4), b[1] - W * 5 * Math.sin(ang - 0.4));
+            ctx.moveTo(b[0], b[1]);
+            ctx.lineTo(b[0] - W * 5 * Math.cos(ang + 0.4), b[1] - W * 5 * Math.sin(ang + 0.4));
+            ctx.stroke();
+          }
+        }),
+    });
   }
   if (darkGrid) {
     const { tones, w, h } = darkGrid;
-    steps.push({ label: 'Block in the big dark shapes', draw: (ctx, t) => fillCells(ctx, tones, w, h, meta.width, meta.height, TONE.dark, COLORS.darkFill, t) });
-    steps.push({ label: 'Add the mid tones; the rest stays paper', draw: (ctx, t) => fillCells(ctx, tones, w, h, meta.width, meta.height, TONE.mid, COLORS.midFill, t) });
+    steps.push({
+      label: 'Block in the big dark shapes',
+      draw: (ctx, t) => fillCells(ctx, tones, w, h, meta.width, meta.height, TONE.dark, COLORS.darkFill, t),
+    });
+    steps.push({
+      label: 'Add the mid tones; the rest stays paper',
+      draw: (ctx, t) => fillCells(ctx, tones, w, h, meta.width, meta.height, TONE.mid, COLORS.midFill, t),
+    });
   }
   return steps;
 }
@@ -141,18 +252,29 @@ export function drawSteps(ctx, steps, upto, t) {
 
 /* Animate steps one after another. frame(step, t) redraws; returns { stop }. */
 export function playSteps(steps, frame, onDone) {
-  let raf = 0, start = performance.now(), stopped = false;
+  let raf = 0,
+    start = performance.now(),
+    stopped = false;
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tick = now => {
     if (stopped) return;
     const el = reduce ? Infinity : now - start;
     const step = Math.floor(el / GUIDE_STEP_MS);
-    if (step >= steps.length) { frame(steps.length, 0); if (onDone) onDone(); return; }
+    if (step >= steps.length) {
+      frame(steps.length, 0);
+      if (onDone) onDone();
+      return;
+    }
     frame(step, (el % GUIDE_STEP_MS) / GUIDE_STEP_MS);
     raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
-  return { stop() { stopped = true; cancelAnimationFrame(raf); } };
+  return {
+    stop() {
+      stopped = true;
+      cancelAnimationFrame(raf);
+    },
+  };
 }
 
 /* ---------- review annotations, in drawing-canvas pixels ---------- */
@@ -161,9 +283,12 @@ export function playSteps(steps, frame, onDone) {
 function panes(round, layout, gap) {
   const { cw, ch, align } = round;
   const refPane = (x, y) => [x, y]; // the reference always sits at the origin of the compare view
-  const minePane = layout === 'h' ? (x, y) => [x + cw + gap, y]
-    : layout === 'v' ? (x, y) => [x, y + ch + gap]
-      : (x, y) => [cw / 2 + align.dx + (x - cw / 2) * align.s, ch / 2 + align.dy + (y - ch / 2) * align.s];
+  const minePane =
+    layout === 'h'
+      ? (x, y) => [x + cw + gap, y]
+      : layout === 'v'
+        ? (x, y) => [x, y + ch + gap]
+        : (x, y) => [cw / 2 + align.dx + (x - cw / 2) * align.s, ch / 2 + align.dy + (y - ch / 2) * align.s];
   return { refPane, minePane };
 }
 
@@ -185,20 +310,34 @@ export function drawReviewAnnotations(ctx, { round, analysis, toggles, layout, g
   if (analysis.evaluator === EVALUATOR.gestureLine) {
     const refLine = analysis.annotations.find(a => a.role === 'reference-line');
     const mine = analysis.annotations.find(a => a.role === 'analyzed-line');
-    if (toggles.reference && refLine) stroke(ctx, COLORS.reference, W, null, () => partialPolyline(ctx, mapPts(refLine.points, refPane), 1));
-    if (toggles.mine && mine) stroke(ctx, COLORS.mine, W * 0.8, [W * 2.5, W * 1.6], () => partialPolyline(ctx, mapPts(mine.points, minePane), 1));
+    if (toggles.reference && refLine)
+      stroke(ctx, COLORS.reference, W, null, () => partialPolyline(ctx, mapPts(refLine.points, refPane), 1));
+    if (toggles.mine && mine)
+      stroke(ctx, COLORS.mine, W * 0.8, [W * 2.5, W * 1.6], () =>
+        partialPolyline(ctx, mapPts(mine.points, minePane), 1),
+      );
     if (toggles.mine && analysis.selection && analysis.status === ANALYSIS_STATUS.ambiguous) {
       ctx.save();
       ctx.font = `600 ${Math.round(W * 6)}px system-ui, sans-serif`;
       for (const c of analysis.selection.candidates.slice(0, 3)) {
         const [x, y] = minePane(...c.points[0]);
-        ctx.fillStyle = COLORS.mine; ctx.beginPath(); ctx.arc(x, y, W * 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(c.index + 1), x, y + 1);
+        ctx.fillStyle = COLORS.mine;
+        ctx.beginPath();
+        ctx.arc(x, y, W * 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(c.index + 1), x, y + 1);
       }
       ctx.restore();
     }
   } else if (analysis.evaluator === EVALUATOR.shapeSilhouette) {
-    const rect = (r, f, color, dash) => { const [x0, y0] = f(r[0] * round.cw, r[1] * round.ch); const [x1, y1] = f((r[0] + r[2]) * round.cw, (r[1] + r[3]) * round.ch); stroke(ctx, color, W * 0.8, dash, () => ctx.strokeRect(x0, y0, x1 - x0, y1 - y0)); };
+    const rect = (r, f, color, dash) => {
+      const [x0, y0] = f(r[0] * round.cw, r[1] * round.ch);
+      const [x1, y1] = f((r[0] + r[2]) * round.cw, (r[1] + r[3]) * round.ch);
+      stroke(ctx, color, W * 0.8, dash, () => ctx.strokeRect(x0, y0, x1 - x0, y1 - y0));
+    };
     const rb = analysis.annotations.find(a => a.role === 'reference-bbox');
     const db = analysis.annotations.find(a => a.role === 'drawn-bbox');
     if (toggles.reference && rb) rect(rb.rect, refPane, COLORS.reference, null);
@@ -207,7 +346,17 @@ export function drawReviewAnnotations(ctx, { round, analysis, toggles, layout, g
     const [ox, oy] = refPane(0, 0);
     ctx.save();
     ctx.translate(ox, oy);
-    fillCells(ctx, analysis.refTones, analysis.grid.w, analysis.grid.h, round.cw, round.ch, TONE.dark, COLORS.darkFill, 1);
+    fillCells(
+      ctx,
+      analysis.refTones,
+      analysis.grid.w,
+      analysis.grid.h,
+      round.cw,
+      round.ch,
+      TONE.dark,
+      COLORS.darkFill,
+      1,
+    );
     ctx.restore();
   }
 }

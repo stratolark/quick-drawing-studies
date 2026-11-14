@@ -7,7 +7,17 @@ const HEALTH_TIMEOUT_MS = 3000;
 export const FEEDBACK_TIMEOUT_MS = 70000;
 const ACCESS_KEY = 'qs.v2.coachAccess';
 
-const STATUS_CODE = { 400: ERROR_CODE.badRequest, 401: ERROR_CODE.unauthorized, 403: ERROR_CODE.unauthorized, 413: ERROR_CODE.tooLarge, 429: ERROR_CODE.rateLimited, 402: ERROR_CODE.budgetExhausted, 502: ERROR_CODE.providerError, 503: ERROR_CODE.unavailable, 504: ERROR_CODE.timeout };
+const STATUS_CODE = {
+  400: ERROR_CODE.badRequest,
+  401: ERROR_CODE.unauthorized,
+  403: ERROR_CODE.unauthorized,
+  413: ERROR_CODE.tooLarge,
+  429: ERROR_CODE.rateLimited,
+  402: ERROR_CODE.budgetExhausted,
+  502: ERROR_CODE.providerError,
+  503: ERROR_CODE.unavailable,
+  504: ERROR_CODE.timeout,
+};
 
 export const ERROR_TEXT = {
   [ERROR_CODE.badRequest]: 'The coach could not read this request.',
@@ -23,15 +33,37 @@ export const ERROR_TEXT = {
   [ERROR_CODE.providerError]: 'The coach service had a problem. Try again later.',
 };
 
-export function getAccessCode() { try { return localStorage.getItem(ACCESS_KEY) || ''; } catch (e) { return ''; } }
-export function setAccessCode(v) { try { if (v) localStorage.setItem(ACCESS_KEY, v); else localStorage.removeItem(ACCESS_KEY); } catch (e) { /* storage unavailable: the code lasts for this page only */ } }
+export function getAccessCode() {
+  try {
+    return localStorage.getItem(ACCESS_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+}
+export function setAccessCode(v) {
+  try {
+    if (v) localStorage.setItem(ACCESS_KEY, v);
+    else localStorage.removeItem(ACCESS_KEY);
+  } catch (e) {
+    /* storage unavailable: the code lasts for this page only */
+  }
+}
 
 function withTimeoutSignal(signal, ms) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(new DOMException('timeout', 'TimeoutError')), ms);
   const onAbort = () => ctl.abort(signal.reason);
-  if (signal) { if (signal.aborted) onAbort(); else signal.addEventListener('abort', onAbort, { once: true }); }
-  return { signal: ctl.signal, done: () => { clearTimeout(t); if (signal) signal.removeEventListener('abort', onAbort); } };
+  if (signal) {
+    if (signal.aborted) onAbort();
+    else signal.addEventListener('abort', onAbort, { once: true });
+  }
+  return {
+    signal: ctl.signal,
+    done: () => {
+      clearTimeout(t);
+      if (signal) signal.removeEventListener('abort', onAbort);
+    },
+  };
 }
 
 export async function coachHealth(fetchImpl) {
@@ -41,10 +73,17 @@ export async function coachHealth(fetchImpl) {
     const r = await f(COACH_BASE + '/health', { signal, headers: { accept: 'application/json' } });
     if (!r.ok) return { available: false };
     const j = await r.json();
-    return { available: j && j.ok === true, provider: j.provider || null, model: j.model || null, needsAccess: !!j.needsAccess };
+    return {
+      available: j && j.ok === true,
+      provider: j.provider || null,
+      model: j.model || null,
+      needsAccess: !!j.needsAccess,
+    };
   } catch (e) {
     return { available: false };
-  } finally { done(); }
+  } finally {
+    done();
+  }
 }
 
 /* Returns { feedback, flags } or throws { code }. */
@@ -61,18 +100,34 @@ export async function requestCoachFeedback(payload, opts) {
   } catch (e) {
     done();
     if (o.signal && o.signal.aborted) throw { code: ERROR_CODE.cancelled };
-    if (e && e.name === 'TimeoutError' || (signal.reason && signal.reason.name === 'TimeoutError')) throw { code: ERROR_CODE.timeout };
+    if ((e && e.name === 'TimeoutError') || (signal.reason && signal.reason.name === 'TimeoutError'))
+      throw { code: ERROR_CODE.timeout };
     throw { code: ERROR_CODE.unavailable };
   }
   try {
     if (!r.ok) {
       let code = STATUS_CODE[r.status] || ERROR_CODE.providerError;
-      try { const j = await r.json(); if (j && j.error && Object.values(ERROR_CODE).includes(j.error.code)) code = j.error.code; } catch (e) { /* non-JSON error body */ }
+      try {
+        const j = await r.json();
+        if (j && j.error && Object.values(ERROR_CODE).includes(j.error.code)) code = j.error.code;
+      } catch (e) {
+        /* non-JSON error body */
+      }
       throw { code };
     }
     let body;
-    try { body = await r.json(); } catch (e) { throw { code: ERROR_CODE.invalidResponse }; }
+    try {
+      body = await r.json();
+    } catch (e) {
+      throw { code: ERROR_CODE.invalidResponse };
+    }
     const clean = sanitizeFeedback(body && body.feedback, payload.evidence || []);
-    return { feedback: clean.feedback, flags: [...new Set(clean.flags.concat(body.flags || []))], model: body.model || null };
-  } finally { done(); }
+    return {
+      feedback: clean.feedback,
+      flags: [...new Set(clean.flags.concat(body.flags || []))],
+      model: body.model || null,
+    };
+  } finally {
+    done();
+  }
 }

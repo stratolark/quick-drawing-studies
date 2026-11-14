@@ -24,11 +24,18 @@ const handler = createCoachHandler({ cfg, provider });
 const server = http.createServer((req, res) => {
   handler(req, res).catch(err => {
     console.error('[coach] unhandled error: ' + (err && err.message));
-    if (!res.headersSent) { res.writeHead(500, { 'content-type': 'application/json' }); res.end('{"error":{"code":"internal"}}'); }
+    if (!res.headersSent) {
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end('{"error":{"code":"internal"}}');
+    }
   });
 });
 server.requestTimeout = cfg.timeoutMs + 15000;
 server.listen(cfg.port, cfg.host, () => {
-  console.log(`[coach] listening on http://${cfg.host}:${cfg.port} provider=${provider ? provider.name : 'off'}${provider ? ' model=' + provider.model : ''}${cfg.accessToken ? ' (access code required)' : ''}${cfg.staticDir ? ' static=' + cfg.staticDir : ''}`);
-  console.log(`[coach] limits: ${cfg.ratePerMinute}/min, ${cfg.ratePerDay}/day per client, $${cfg.dailyBudgetUsd}/day budget, ${cfg.timeoutMs}ms timeout`);
+  console.log(
+    `[coach] listening on http://${cfg.host}:${cfg.port} provider=${provider ? provider.name : 'off'}${provider ? ' model=' + provider.model : ''}${cfg.accessToken ? ' (access code required)' : ''}${cfg.staticDir ? ' static=' + cfg.staticDir : ''}`,
+  );
+  console.log(
+    `[coach] limits: ${cfg.ratePerMinute}/min, ${cfg.ratePerDay}/day per client, $${cfg.dailyBudgetUsd}/day budget, ${cfg.timeoutMs}ms timeout`,
+  );
 });

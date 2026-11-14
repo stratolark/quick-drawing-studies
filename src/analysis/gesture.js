@@ -5,8 +5,21 @@
    errors stay visible. Reversed stroke direction is the same line. The main line is chosen from
    features that do not look at the reference, so the choice cannot hide a mistake. */
 import {
-  toXY, toPair, pathLength, resample, bbox, dist, reverse, chordAngleDeg, angleDelta,
-  signedBow, curveType, normalizeTS, meanPairDistance, canonicalOrder, roundTo as round,
+  toXY,
+  toPair,
+  pathLength,
+  resample,
+  bbox,
+  dist,
+  reverse,
+  chordAngleDeg,
+  angleDelta,
+  signedBow,
+  curveType,
+  normalizeTS,
+  meanPairDistance,
+  canonicalOrder,
+  roundTo as round,
 } from './geometry.js';
 import { EVALUATOR } from '../learning/curriculum.js';
 
@@ -21,14 +34,14 @@ export const ANALYSIS_STATUS = Object.freeze({
 
 /* Tolerances are deliberately loose: a quick study is not expected to match within a few degrees. */
 export const GESTURE_TOLERANCES = Object.freeze({
-  orientationDeg: 8,       // tilt differences below this are treated as a match
-  bow: 0.05,               // bow difference (fraction of chord length) treated as a match
-  straightBow: 0.035,      // a line bowing less than this counts as straight
-  shapeError: 0.25,        // normalized mean point distance treated as a close match
-  minLengthFrac: 0.15,     // candidate must span this fraction of the drawing's diagonal
-  joinGapFrac: 0.06,       // stroke ends closer than this (of the diagonal) may form one line
-  maxTortuosity: 2.2,      // path length / chord above this is a scribble, not a line of action
-  ambiguityRatio: 0.88,    // runner-up scoring this close to the best makes the choice uncertain
+  orientationDeg: 8, // tilt differences below this are treated as a match
+  bow: 0.05, // bow difference (fraction of chord length) treated as a match
+  straightBow: 0.035, // a line bowing less than this counts as straight
+  shapeError: 0.25, // normalized mean point distance treated as a close match
+  minLengthFrac: 0.15, // candidate must span this fraction of the drawing's diagonal
+  joinGapFrac: 0.06, // stroke ends closer than this (of the diagonal) may form one line
+  maxTortuosity: 2.2, // path length / chord above this is a scribble, not a line of action
+  ambiguityRatio: 0.88, // runner-up scoring this close to the best makes the choice uncertain
 });
 
 const RESAMPLE_N = 48;
@@ -44,8 +57,11 @@ const LIMITATIONS = [
 /* Strokes after the last clear, pen only, without erasers. */
 export function linesFromStrokes(strokes) {
   let start = 0;
-  strokes.forEach((s, i) => { if (s.tool === 'clear') start = i + 1; });
-  return strokes.slice(start)
+  strokes.forEach((s, i) => {
+    if (s.tool === 'clear') start = i + 1;
+  });
+  return strokes
+    .slice(start)
     .filter(s => LINE_TOOLS.has(s.tool) && !s.erase && s.pts && s.pts.length >= 2)
     .map(s => s.pts.map(toXY));
 }
@@ -81,7 +97,8 @@ function scoreCandidate(c, diag) {
   const orderScore = 1 / (1 + 0.25 * c.order);
   const smoothScore = 1 / tortuosity;
   // Length and span dominate; early and smooth strokes break ties. A joined pair pays a small cost so it wins only when it is really longer (2026-11-14).
-  const score = 0.45 * lengthScore + 0.25 * spanScore + 0.15 * orderScore + 0.15 * smoothScore - (c.parts.length > 1 ? 0.02 : 0);
+  const score =
+    0.45 * lengthScore + 0.25 * spanScore + 0.15 * orderScore + 0.15 * smoothScore - (c.parts.length > 1 ? 0.02 : 0);
   return Object.assign({}, c, { len, chord, tortuosity, score });
 }
 
@@ -105,7 +122,7 @@ export function compareLines(drawnPts, refPts) {
   const drawnBow = signedBow(drawn);
   const refCurved = Math.abs(refBow) >= T.straightBow;
   const drawnCurved = Math.abs(drawnBow) >= T.straightBow;
-  const vertical = Math.abs(Math.sin(refAngle * Math.PI / 180)) >= Math.SQRT1_2;
+  const vertical = Math.abs(Math.sin((refAngle * Math.PI) / 180)) >= Math.SQRT1_2;
   return {
     metrics: {
       orientationDeltaDeg: round(orientationDeltaDeg, 1),
@@ -119,22 +136,26 @@ export function compareLines(drawnPts, refPts) {
       shapeError: round(shapeError, 3),
       refMostlyVertical: vertical,
     },
-    drawn, ref,
+    drawn,
+    ref,
   };
 }
 
 function baseAnalysis(status, extra) {
-  return Object.assign({
-    version: GESTURE_ANALYSIS_VERSION,
-    evaluator: EVALUATOR.gestureLine,
-    status,
-    metrics: {},
-    tolerances: GESTURE_TOLERANCES,
-    limitations: LIMITATIONS.slice(),
-    selection: null,
-    annotations: [],
-    compact: null,
-  }, extra);
+  return Object.assign(
+    {
+      version: GESTURE_ANALYSIS_VERSION,
+      evaluator: EVALUATOR.gestureLine,
+      status,
+      metrics: {},
+      tolerances: GESTURE_TOLERANCES,
+      limitations: LIMITATIONS.slice(),
+      selection: null,
+      annotations: [],
+      compact: null,
+    },
+    extra,
+  );
 }
 
 /* reference: { actionLine: [[x,y]...], width, height } in reference-image pixels.
@@ -144,9 +165,14 @@ export function analyzeGesture({ strokes, reference, canvas, selection }) {
   if (!lines.length) return baseAnalysis(ANALYSIS_STATUS.empty, { limitations: ['No pen lines were drawn.'] });
   const line = reference && reference.actionLine;
   if (!line || line.length < 2 || !reference.width || !reference.height) {
-    return baseAnalysis(ANALYSIS_STATUS.unavailable, { limitations: ['This reference has no verified line of action, so the gesture cannot be measured. Compare it yourself with the overlay.'] });
+    return baseAnalysis(ANALYSIS_STATUS.unavailable, {
+      limitations: [
+        'This reference has no verified line of action, so the gesture cannot be measured. Compare it yourself with the overlay.',
+      ],
+    });
   }
-  const sx = canvas.w / reference.width, sy = canvas.h / reference.height;
+  const sx = canvas.w / reference.width,
+    sy = canvas.h / reference.height;
   const refPts = line.map(p => ({ x: p[0] * sx, y: p[1] * sy }));
 
   const all = lines.flat();
@@ -157,7 +183,9 @@ export function analyzeGesture({ strokes, reference, canvas, selection }) {
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
   if (!scored.length) {
-    return baseAnalysis(ANALYSIS_STATUS.unavailable, { limitations: ['No stroke was long and smooth enough to read as a line of action.'] });
+    return baseAnalysis(ANALYSIS_STATUS.unavailable, {
+      limitations: ['No stroke was long and smooth enough to read as a line of action.'],
+    });
   }
 
   const candidates = scored.map((c, i) => ({
@@ -173,18 +201,26 @@ export function analyzeGesture({ strokes, reference, canvas, selection }) {
   if (userPick == null && scored.length > 1) {
     const runner = scored[1];
     const close = runner.score >= GESTURE_TOLERANCES.ambiguityRatio * chosen.score;
-    const differs = Math.abs(angleDelta(chordAngleDeg(canonicalOrder(runner.pts)), chordAngleDeg(canonicalOrder(chosen.pts)))) > 2 * GESTURE_TOLERANCES.orientationDeg;
+    const differs =
+      Math.abs(angleDelta(chordAngleDeg(canonicalOrder(runner.pts)), chordAngleDeg(canonicalOrder(chosen.pts)))) >
+      2 * GESTURE_TOLERANCES.orientationDeg;
     const sameStrokes = runner.parts.some(p => chosen.parts.includes(p));
     ambiguous = close && differs && !sameStrokes;
   }
 
   const { metrics, drawn, ref } = compareLines(chosen.pts, refPts);
   const limitations = LIMITATIONS.slice();
-  if (ambiguous) limitations.push('Two strokes could be your main line. Pick the one you meant so the measurement uses it.');
+  if (ambiguous)
+    limitations.push('Two strokes could be your main line. Pick the one you meant so the measurement uses it.');
   return baseAnalysis(ambiguous ? ANALYSIS_STATUS.ambiguous : ANALYSIS_STATUS.measured, {
     metrics,
     limitations,
-    selection: { index: chosenIndex, source: userPick == null ? 'auto' : 'user', confidence: round(scored.length > 1 ? 1 - scored[1].score / chosen.score : 1, 3), candidates },
+    selection: {
+      index: chosenIndex,
+      source: userPick == null ? 'auto' : 'user',
+      confidence: round(scored.length > 1 ? 1 - scored[1].score / chosen.score : 1, 3),
+      candidates,
+    },
     annotations: [
       { kind: 'polyline', role: 'reference-line', points: ref.map(p => toPair(p)) },
       { kind: 'polyline', role: 'analyzed-line', points: drawn.map(p => toPair(p)) },

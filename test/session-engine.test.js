@@ -1,6 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { createSession, transition, assistance, canRetry, EVENT, ATTEMPT_TYPE, REF_ROLE } from '../src/learning/session-engine.js';
-import { buildPlan, planMinutes, SESSION_TYPE, STAGE, GUIDANCE, OBJECTIVES, OVERLAYS, objectiveIds } from '../src/learning/curriculum.js';
+import {
+  createSession,
+  transition,
+  assistance,
+  canRetry,
+  EVENT,
+  ATTEMPT_TYPE,
+  REF_ROLE,
+} from '../src/learning/session-engine.js';
+import {
+  buildPlan,
+  planMinutes,
+  SESSION_TYPE,
+  STAGE,
+  GUIDANCE,
+  OBJECTIVES,
+  OVERLAYS,
+  objectiveIds,
+} from '../src/learning/curriculum.js';
 import { createStorage, memoryBackend, toSessionRecord } from '../src/learning/storage.js';
 
 const OBJ = 'gesture.line-of-action';
@@ -9,7 +26,8 @@ const mk = (type = SESSION_TYPE.focused, overrides, guidance = GUIDANCE.assisted
 
 /* Apply events in order and fail loudly on any rejection. */
 function run(state, events) {
-  let s = state, t = 1;
+  let s = state,
+    t = 1;
   for (const ev of events) {
     const r = transition(s, ev, t++);
     if (!r.ok) throw new Error(`${ev.type} rejected in ${s.stage}: ${r.reason}`);
@@ -22,30 +40,47 @@ const att = (id, referenceId) => ({ type: EVENT.attemptRecorded, attempt: { id, 
 describe('curriculum plans', () => {
   it('builds the default 30-minute focused session from the brief', () => {
     const p = buildPlan(SESSION_TYPE.focused, OBJ);
-    expect([p.observe.minutes, p.warmup.minutes, p.focused_practice.minutes, p.correction.minutes, p.transfer_test.minutes]).toEqual([3, 7, 10, 5, 5]);
+    expect([
+      p.observe.minutes,
+      p.warmup.minutes,
+      p.focused_practice.minutes,
+      p.correction.minutes,
+      p.transfer_test.minutes,
+    ]).toEqual([3, 7, 10, 5, 5]);
     expect(planMinutes(p)).toBe(30);
     expect(p.warmup.count).toBeGreaterThanOrEqual(5);
     expect(p.transfer_test.enabled).toBe(true);
   });
   it('keeps the transfer test optional and off by default in quick practice', () => {
     expect(buildPlan(SESSION_TYPE.quick, OBJ).transfer_test.enabled).toBe(false);
-    expect(buildPlan(SESSION_TYPE.quick, OBJ, { stages: { transfer_test: { enabled: true } } }).transfer_test.enabled).toBe(true);
+    expect(
+      buildPlan(SESSION_TYPE.quick, OBJ, { stages: { transfer_test: { enabled: true } } }).transfer_test.enabled,
+    ).toBe(true);
   });
   it('lets the learner change durations but never disable the focused drawing', () => {
-    const p = buildPlan(SESSION_TYPE.focused, OBJ, { stages: { focused_practice: { enabled: false, secs: 45 }, observe: { minutes: 1 } } });
+    const p = buildPlan(SESSION_TYPE.focused, OBJ, {
+      stages: { focused_practice: { enabled: false, secs: 45 }, observe: { minutes: 1 } },
+    });
     expect(p.focused_practice.enabled).toBe(true);
     expect(p.focused_practice.secs).toBe(45);
     expect(p.observe.minutes).toBe(1);
   });
   it('ignores corrupted stored overrides instead of producing NaN', () => {
-    const p = buildPlan(SESSION_TYPE.focused, OBJ, { stages: { warmup: { secs: 'abc', count: null }, focused_practice: { secs: -5 }, observe: { minutes: 'x', enabled: 'yes' } } });
+    const p = buildPlan(SESSION_TYPE.focused, OBJ, {
+      stages: {
+        warmup: { secs: 'abc', count: null },
+        focused_practice: { secs: -5 },
+        observe: { minutes: 'x', enabled: 'yes' },
+      },
+    });
     expect(Number.isFinite(p.warmup.secs) && Number.isFinite(p.warmup.count)).toBe(true);
     expect(p.focused_practice.secs).toBe(90);
     expect(p.observe.minutes).toBe(3);
     expect(p.observe.enabled).toBe(true);
   });
   it('gives deep practice more retries and longer drawings', () => {
-    const d = buildPlan(SESSION_TYPE.deep, OBJ), f = buildPlan(SESSION_TYPE.focused, OBJ);
+    const d = buildPlan(SESSION_TYPE.deep, OBJ),
+      f = buildPlan(SESSION_TYPE.focused, OBJ);
     expect(d.correction.maxRetries).toBeGreaterThan(f.correction.maxRetries);
     expect(d.focused_practice.secs).toBeGreaterThan(f.focused_practice.secs);
   });
@@ -67,7 +102,10 @@ describe('session state machine', () => {
     expect(s.stage).toBe(STAGE.observe);
     s = run(s, [{ type: EVENT.complete }]);
     expect(s.stage).toBe(STAGE.warmup);
-    s = run(s, Array.from({ length: n }, (_, i) => att('w' + i, 'warm-' + i)));
+    s = run(
+      s,
+      Array.from({ length: n }, (_, i) => att('w' + i, 'warm-' + i)),
+    );
     expect(s.stage).toBe(STAGE.focused);
     s = run(s, [{ type: EVENT.setReference, role: REF_ROLE.focus, referenceId: 'R1' }, att('a1', 'R1')]);
     expect(s.stage).toBe(STAGE.review);
@@ -99,32 +137,64 @@ describe('session state machine', () => {
   });
 
   it('starts at the first enabled stage when observation and warm-up are disabled', () => {
-    const s = run(mk(SESSION_TYPE.focused, { stages: { observe: { enabled: false }, warmup: { enabled: false } } }), [{ type: EVENT.start }]);
+    const s = run(mk(SESSION_TYPE.focused, { stages: { observe: { enabled: false }, warmup: { enabled: false } } }), [
+      { type: EVENT.start },
+    ]);
     expect(s.stage).toBe(STAGE.focused);
   });
 
   it('refuses a retry once the retry budget is used', () => {
-    let s = run(mk(), [{ type: EVENT.start }, { type: EVENT.skip }, { type: EVENT.skip }, att('a1', 'R1'), { type: EVENT.retry }, att('a2', 'R1')]);
+    let s = run(mk(), [
+      { type: EVENT.start },
+      { type: EVENT.skip },
+      { type: EVENT.skip },
+      att('a1', 'R1'),
+      { type: EVENT.retry },
+      att('a2', 'R1'),
+    ]);
     const r = transition(s, { type: EVENT.retry });
     expect(r.ok).toBe(false);
     expect(r.reason).toBe('retry-not-available');
   });
 
   it('chains a second correction to the first in deep practice', () => {
-    const s = run(mk(SESSION_TYPE.deep), [{ type: EVENT.start }, { type: EVENT.skip }, { type: EVENT.skip }, att('a1', 'R1'), { type: EVENT.retry }, att('a2', 'R1'), { type: EVENT.retry }, att('a3', 'R1')]);
+    const s = run(mk(SESSION_TYPE.deep), [
+      { type: EVENT.start },
+      { type: EVENT.skip },
+      { type: EVENT.skip },
+      att('a1', 'R1'),
+      { type: EVENT.retry },
+      att('a2', 'R1'),
+      { type: EVENT.retry },
+      att('a3', 'R1'),
+    ]);
     expect(s.attempts.find(a => a.id === 'a3').parentId).toBe('a2');
   });
 
   it('refuses a correction drawn from a different reference', () => {
-    const s = run(mk(), [{ type: EVENT.start }, { type: EVENT.skip }, { type: EVENT.skip }, att('a1', 'R1'), { type: EVENT.retry }]);
+    const s = run(mk(), [
+      { type: EVENT.start },
+      { type: EVENT.skip },
+      { type: EVENT.skip },
+      att('a1', 'R1'),
+      { type: EVENT.retry },
+    ]);
     const r = transition(s, att('a2', 'OTHER'));
     expect(r.ok).toBe(false);
     expect(r.reason).toBe('correction-must-use-same-reference');
   });
 
   it('requires the transfer test to use a new reference', () => {
-    const s = run(mk(), [{ type: EVENT.start }, { type: EVENT.skip }, { type: EVENT.skip }, att('a1', 'R1'), { type: EVENT.continue }]);
-    expect(transition(s, { type: EVENT.setReference, role: REF_ROLE.transfer, referenceId: 'R1' }).reason).toBe('transfer-reference-must-differ');
+    const s = run(mk(), [
+      { type: EVENT.start },
+      { type: EVENT.skip },
+      { type: EVENT.skip },
+      att('a1', 'R1'),
+      { type: EVENT.continue },
+    ]);
+    expect(transition(s, { type: EVENT.setReference, role: REF_ROLE.transfer, referenceId: 'R1' }).reason).toBe(
+      'transfer-reference-must-differ',
+    );
     expect(transition(s, att('t1', 'R1')).ok).toBe(false);
     const s2 = run(s, [{ type: EVENT.setReference, role: REF_ROLE.transfer, referenceId: 'R9' }]);
     expect(transition(s2, att('t1', 'R1')).reason).toBe('transfer-attempt-must-use-transfer-reference');
@@ -178,10 +248,24 @@ describe('session state machine', () => {
 describe('assistance by stage', () => {
   it('shows nothing during the independent transfer test, whatever the guidance level', () => {
     for (const g of [GUIDANCE.independent, GUIDANCE.assisted, GUIDANCE.guided]) {
-      const s = run(mk(SESSION_TYPE.focused, null, g), [{ type: EVENT.start }, { type: EVENT.skip }, { type: EVENT.skip }, att('a1', 'R1'), { type: EVENT.continue }]);
+      const s = run(mk(SESSION_TYPE.focused, null, g), [
+        { type: EVENT.start },
+        { type: EVENT.skip },
+        { type: EVENT.skip },
+        att('a1', 'R1'),
+        { type: EVENT.continue },
+      ]);
       expect(s.stage).toBe(STAGE.transfer);
       const a = assistance(s);
-      expect(a).toEqual({ independent: true, questions: 0, objective: false, correction: false, guidesAfterObserve: OVERLAYS.none, constructionGuide: false, liveFeedback: false });
+      expect(a).toEqual({
+        independent: true,
+        questions: 0,
+        objective: false,
+        correction: false,
+        guidesAfterObserve: OVERLAYS.none,
+        constructionGuide: false,
+        liveFeedback: false,
+      });
     }
   });
   it('scales observation help with the guidance level', () => {
@@ -208,7 +292,13 @@ describe('session persistence', () => {
     const backend = memoryBackend();
     const store = createStorage(backend);
     store.load();
-    const s = run(mk(), [{ type: EVENT.start }, { type: EVENT.skip }, { type: EVENT.skip }, att('a1', 'R1'), { type: EVENT.endEarly }]);
+    const s = run(mk(), [
+      { type: EVENT.start },
+      { type: EVENT.skip },
+      { type: EVENT.skip },
+      att('a1', 'R1'),
+      { type: EVENT.endEarly },
+    ]);
     expect(store.saveSession(toSessionRecord(s, { summary: { note: 'x' } }))).toBe(true);
     const back = createStorage(backend).load().sessions[0];
     expect(back.id).toBe('s1');
