@@ -155,9 +155,15 @@ export function startApp() {
     toolState: {},
   };
   S.settings.secs = Object.assign({}, DEFAULTS.secs, S.settings.secs || {});
-  if (!MODES[S.settings.mode]) S.settings.mode = 'gesture';
-  if (!SUBJECTS.some(s => s[0] === S.settings.subject)) S.settings.subject = 'movement';
-  if (!SOURCES.some(s => s[0] === S.settings.source)) S.settings.source = 'generated';
+  if (!MODES[S.settings.mode]) {
+    S.settings.mode = 'gesture';
+  }
+  if (!SUBJECTS.some(s => s[0] === S.settings.subject)) {
+    S.settings.subject = 'movement';
+  }
+  if (!SOURCES.some(s => s[0] === S.settings.source)) {
+    S.settings.source = 'generated';
+  }
   const saveSettings = () => lsSet('qs.settings', S.settings);
 
   function normProfile(p) {
@@ -173,7 +179,9 @@ export function startApp() {
   function streak(days) {
     let n = 0;
     const d = new Date();
-    if (!days[todayKey(d)]) d.setDate(d.getDate() - 1);
+    if (!days[todayKey(d)]) {
+      d.setDate(d.getDate() - 1);
+    }
     while (days[todayKey(d)]) {
       n++;
       d.setDate(d.getDate() - 1);
@@ -202,26 +210,33 @@ export function startApp() {
       return this.db.doc('data/users/' + this.uid + '/profile');
     },
     async loadProfile() {
-      if (!this.remote) return lsGet('qs.profile', null);
+      if (!this.remote) {
+        return lsGet('qs.profile', null);
+      }
       const snap = await withTimeout(this.profileRef().get(), 10000);
       return snap.exists ? snap.data() : null;
     },
     async saveProfile(p) {
       lsSet('qs.profile', p);
-      if (this.remote) await this.profileRef().set(JSON.parse(JSON.stringify(p)));
+      if (this.remote) {
+        await this.profileRef().set(JSON.parse(JSON.stringify(p)));
+      }
     },
     async saveSession(rec) {
       const all = lsGet('qs.sessions', []).filter(s => s.id !== rec.id);
       all.unshift(rec);
       lsSet('qs.sessions', all.slice(0, 30));
-      if (this.remote)
+      if (this.remote) {
         await this.profileRef()
           .collection('sessions')
           .doc(String(rec.id))
           .set(JSON.parse(JSON.stringify(rec)));
+      }
     },
     async listSessions() {
-      if (!this.remote) return lsGet('qs.sessions', []);
+      if (!this.remote) {
+        return lsGet('qs.sessions', []);
+      }
       const q = await withTimeout(
         this.profileRef().collection('sessions').orderBy('id', 'desc').limit(12).get(),
         10000,
@@ -229,7 +244,9 @@ export function startApp() {
       return q.docs.map(d => d.data());
     },
     async listRefs() {
-      if (!this.remote || !this.assets) return [];
+      if (!this.remote || !this.assets) {
+        return [];
+      }
       const q = await withTimeout(this.profileRef().collection('refs').orderBy('addedAt', 'asc').get(), 10000);
       return q.docs.map(d => Object.assign({ docId: d.id }, d.data()));
     },
@@ -320,23 +337,25 @@ export function startApp() {
     $('#reviewEach').checked = !!st.reviewEach;
     const n = matchingRefs(st.subject).length;
     let note;
-    if (!gen)
+    if (!gen) {
       note = n
         ? 'This browser cannot draw generated references, so your images are used.'
         : 'This browser cannot draw generated references. Add your own images below to start.';
-    else if (st.source === 'generated')
+    } else if (st.source === 'generated') {
       note =
         st.subject === 'perspective'
           ? 'Boxes, streets, still lifes and colonnades from new angles every time.'
           : st.subject === 'movement'
             ? 'A posed 3D mannequin, new pose and camera angle every time.'
             : 'Mannequin poses and perspective scenes, mixed.';
-    else if (n === 0) note = 'You have no images tagged for this subject yet, so generated ones fill in.';
-    else
+    } else if (n === 0) {
+      note = 'You have no images tagged for this subject yet, so generated ones fill in.';
+    } else {
       note =
         (st.source === 'mine' ? 'Uses your ' : 'Mixes generated references with your ') +
         n +
         (n === 1 ? ' image.' : ' images.');
+    }
     $('#sourceNote').textContent = note;
     $('#startBtn').disabled = !gen && S.refs.length === 0;
     $('#startNote').textContent =
@@ -349,7 +368,9 @@ export function startApp() {
     renderStats();
     renderSetup();
     renderRefs();
-    for (const fn of homeHooks) fn();
+    for (const fn of homeHooks) {
+      fn();
+    }
   }
 
   /* ---------- my references ---------- */
@@ -363,8 +384,9 @@ export function startApp() {
     const grid = $('#refGrid');
     const n = S.refs.length;
     $('#refCount').textContent = n ? n + (n === 1 ? ' image' : ' images') : '';
-    if (!persistRefs() && !$('#refStatus').textContent)
+    if (!persistRefs() && !$('#refStatus').textContent) {
       setRefStatus('Images added here last until you close this page.');
+    }
     grid.replaceChildren(
       ...S.refs.map(r => {
         const sel = el(
@@ -484,7 +506,9 @@ export function startApp() {
       'It will no longer appear in sessions. This cannot be undone.',
       'Remove',
     );
-    if (!ok) return;
+    if (!ok) {
+      return;
+    }
     try {
       if (r.docId && persistRefs()) {
         await queueWrite(() => Store.deleteRef(r.docId));
@@ -493,7 +517,9 @@ export function startApp() {
         } catch (e) {
           /* the row is gone; the file is orphaned but harmless */
         }
-      } else if (r.local) URL.revokeObjectURL(r.url);
+      } else if (r.local) {
+        URL.revokeObjectURL(r.url);
+      }
       S.refs = S.refs.filter(x => x !== r);
       setRefStatus('Removed.');
       renderRefs();
@@ -537,14 +563,19 @@ export function startApp() {
       this.pctx.clearRect(0, 0, w, h);
     }
     lock(v) {
-      if (v) this.finishStroke();
+      if (v) {
+        this.finishStroke();
+      }
       this.locked = v;
     }
     pt(e) {
       const r = this.rect || this.c.getBoundingClientRect();
       let pr = e.pressure;
-      if (e.pointerType === 'mouse') pr = 0.7;
-      else if (!pr) pr = 0.6;
+      if (e.pointerType === 'mouse') {
+        pr = 0.7;
+      } else if (!pr) {
+        pr = 0.6;
+      }
       return {
         x: ((e.clientX - r.left) * this.c.width) / r.width,
         y: ((e.clientY - r.top) * this.c.height) / r.height,
@@ -552,18 +583,30 @@ export function startApp() {
       };
     }
     colorFor(t) {
-      if (this.mode === 'values') return this.value === 'mid' ? MID : this.value === 'dark' ? DARK : '#000000';
+      if (this.mode === 'values') {
+        return this.value === 'mid' ? MID : this.value === 'dark' ? DARK : '#000000';
+      }
       return t === 'lasso' ? SHAPE : INK;
     }
     isErase(t) {
       return t === 'cut' || (this.mode === 'values' && this.value === 'light');
     }
     down(e) {
-      if (this.locked) return;
-      if (e.pointerType === 'pen') this.penSeen = true;
-      if (e.pointerType === 'touch' && this.penSeen) return;
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      if (this.activeId !== null) return;
+      if (this.locked) {
+        return;
+      }
+      if (e.pointerType === 'pen') {
+        this.penSeen = true;
+      }
+      if (e.pointerType === 'touch' && this.penSeen) {
+        return;
+      }
+      if (e.pointerType === 'mouse' && e.button !== 0) {
+        return;
+      }
+      if (this.activeId !== null) {
+        return;
+      }
       e.preventDefault();
       this.activeId = e.pointerId;
       this.rect = this.c.getBoundingClientRect();
@@ -574,37 +617,54 @@ export function startApp() {
       }
       const t = this.tool;
       this.cur = { tool: t, size: this.size, color: this.colorFor(t), erase: this.isErase(t), pts: [this.pt(e)] };
-      if (t === 'pen' || t === 'brush') this.drawSeg(this.ctx, this.cur, 0);
+      if (t === 'pen' || t === 'brush') {
+        this.drawSeg(this.ctx, this.cur, 0);
+      }
     }
     move(e) {
-      if (!this.cur || e.pointerId !== this.activeId) return;
+      if (!this.cur || e.pointerId !== this.activeId) {
+        return;
+      }
       e.preventDefault();
       const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
       for (const ev of list.length ? list : [e]) {
         this.cur.pts.push(this.pt(ev));
-        if (this.cur.tool === 'pen' || this.cur.tool === 'brush')
+        if (this.cur.tool === 'pen' || this.cur.tool === 'brush') {
           this.drawSeg(this.ctx, this.cur, this.cur.pts.length - 1);
+        }
       }
-      if (this.cur.tool === 'lasso' || this.cur.tool === 'cut') this.drawLassoPreview();
+      if (this.cur.tool === 'lasso' || this.cur.tool === 'cut') {
+        this.drawLassoPreview();
+      }
     }
     up(e) {
-      if (!this.cur || (e && e.pointerId !== this.activeId)) return;
+      if (!this.cur || (e && e.pointerId !== this.activeId)) {
+        return;
+      }
       this.commit();
     }
     finishStroke() {
-      if (this.cur) this.commit();
+      if (this.cur) {
+        this.commit();
+      }
     }
     commit() {
       const st = this.cur;
       this.cur = null;
       this.activeId = null;
       this.rect = null;
-      if (!st) return;
+      if (!st) {
+        return;
+      }
       if (st.tool === 'lasso' || st.tool === 'cut') {
         this.pctx.clearRect(0, 0, this.p.width, this.p.height);
-        if (st.pts.length < 3) return;
+        if (st.pts.length < 3) {
+          return;
+        }
         this.fillLasso(this.ctx, st);
-      } else this.finishSeg(this.ctx, st);
+      } else {
+        this.finishSeg(this.ctx, st);
+      }
       this.strokes.push(st);
     }
     width(st, p) {
@@ -652,7 +712,9 @@ export function startApp() {
     }
     finishSeg(ctx, st) {
       const P = st.pts;
-      if (P.length < 2) return;
+      if (P.length < 2) {
+        return;
+      }
       const a = P[P.length - 2],
         b = P[P.length - 1],
         m = mid(a, b);
@@ -708,24 +770,34 @@ export function startApp() {
           this.fillLasso(ctx, st);
           continue;
         }
-        for (let i = 0; i < st.pts.length; i++) this.drawSeg(ctx, st, i);
+        for (let i = 0; i < st.pts.length; i++) {
+          this.drawSeg(ctx, st, i);
+        }
         this.finishSeg(ctx, st);
       }
     }
     undo() {
-      if (this.cur || this.locked) return;
+      if (this.cur || this.locked) {
+        return;
+      }
       this.strokes.pop();
       this.redraw();
     }
     clear() {
-      if (this.cur || this.locked || !this.strokes.length) return;
+      if (this.cur || this.locked || !this.strokes.length) {
+        return;
+      }
       this.strokes.push({ tool: 'clear' });
       this.redraw();
     }
     isEmpty() {
       for (let i = this.strokes.length - 1; i >= 0; i--) {
-        if (this.strokes[i].tool === 'clear') return true;
-        if (!this.strokes[i].erase) return false;
+        if (this.strokes[i].tool === 'clear') {
+          return true;
+        }
+        if (!this.strokes[i].erase) {
+          return false;
+        }
       }
       return true;
     }
@@ -768,12 +840,16 @@ export function startApp() {
       const f = now => {
         const left = Math.max(0, this.end - now);
         this.left = left;
-        if (this.tick) this.tick(left, this.dur);
+        if (this.tick) {
+          this.tick(left, this.dur);
+        }
         if (left <= 0) {
           this.raf = 0;
           const d = this.done;
           this.done = null;
-          if (d) d();
+          if (d) {
+            d();
+          }
           return;
         }
         this.raf = requestAnimationFrame(f);
@@ -781,19 +857,25 @@ export function startApp() {
       this.raf = requestAnimationFrame(f);
     },
     pause() {
-      if (!this.raf) return;
+      if (!this.raf) {
+        return;
+      }
       cancelAnimationFrame(this.raf);
       this.raf = 0;
       this.paused = true;
     },
     resume() {
-      if (!this.paused) return;
+      if (!this.paused) {
+        return;
+      }
       this.paused = false;
       this.end = performance.now() + this.left;
       this.loop();
     },
     stop() {
-      if (this.raf) cancelAnimationFrame(this.raf);
+      if (this.raf) {
+        cancelAnimationFrame(this.raf);
+      }
       this.raf = 0;
       this.paused = false;
       this.done = null;
@@ -809,8 +891,12 @@ export function startApp() {
   /* ---------- screens ---------- */
   function show(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('is-active', s.id === id));
-    if (id === 'draw') requestAnimationFrame(layoutStage);
-    if (id === 'review') requestAnimationFrame(renderReviewCanvas);
+    if (id === 'draw') {
+      requestAnimationFrame(layoutStage);
+    }
+    if (id === 'review') {
+      requestAnimationFrame(renderReviewCanvas);
+    }
     if (id === 'home' || id === 'summary') {
       const s = $('#' + id);
       s.scrollTop = 0;
@@ -819,14 +905,18 @@ export function startApp() {
   function layoutStage() {
     const ss = S.session;
     const r = ss && ss.cur;
-    if (!r) return;
+    if (!r) {
+      return;
+    }
     const aspect = r.cw / r.ch;
     const box = stage.getBoundingClientRect();
     const padX = 32,
       gap = 16;
     const W = box.width - padX,
       H = box.height - padX;
-    if (W <= 0 || H <= 0) return;
+    if (W <= 0 || H <= 0) {
+      return;
+    }
     const fit = (w, h) => {
       let fw = w,
         fh = w / aspect;
@@ -956,36 +1046,48 @@ export function startApp() {
       .querySelectorAll('[data-value]')
       .forEach(b => b.setAttribute('aria-pressed', String(b.dataset.value === ts.value)));
     const sc = $('#sizeCtl');
-    if (sc) sc.style.opacity = ts.tool === 'pen' || ts.tool === 'brush' ? '1' : '0.45';
+    if (sc) {
+      sc.style.opacity = ts.tool === 'pen' || ts.tool === 'brush' ? '1' : '0.45';
+    }
     updateSizeDot();
   }
   function setTool(t) {
     const ss = S.session;
-    if (!ss) return;
+    if (!ss) {
+      return;
+    }
     toolState(ss.mode).tool = t;
     applyToolState(ss.mode);
   }
   function setValue(v) {
     const ss = S.session;
-    if (!ss) return;
+    if (!ss) {
+      return;
+    }
     toolState(ss.mode).value = v;
     applyToolState(ss.mode);
   }
   function changeSize(dir) {
     const ss = S.session;
-    if (!ss) return;
+    if (!ss) {
+      return;
+    }
     const M = MODES[ss.mode],
       ts = toolState(ss.mode);
     const step = Math.max(1, Math.round((M.size[1] - M.size[0]) / 12));
     ts.size = clamp(ts.size + dir * step, M.size[0], M.size[1]);
     const r = $('#sizeRange');
-    if (r) r.value = ts.size;
+    if (r) {
+      r.value = ts.size;
+    }
     sketch.size = ts.size;
     updateSizeDot();
   }
   function updateSizeDot() {
     const d = $('#sizeDot');
-    if (!d || !sketch.c.width) return;
+    if (!d || !sketch.c.width) {
+      return;
+    }
     const k = (canvasPane.getBoundingClientRect().width || sketch.c.width) / sketch.c.width;
     const px = clamp(sketch.size * k, 2, 30);
     d.style.width = d.style.height = px + 'px';
@@ -993,19 +1095,27 @@ export function startApp() {
 
   /* ---------- session flow ---------- */
   function cleanupSession(ss) {
-    if (!ss) return;
+    if (!ss) {
+      return;
+    }
     for (const r of ss.rounds) {
-      if (r && r.ctl) r.ctl.abort();
+      if (r && r.ctl) {
+        r.ctl.abort();
+      }
       if (r && r.ref && r.ref.objectUrl && !r.ref.revoked) {
         URL.revokeObjectURL(r.ref.url);
         r.ref.revoked = true;
       }
     }
-    if (ss.reviewCtl) ss.reviewCtl.abort();
+    if (ss.reviewCtl) {
+      ss.reviewCtl.abort();
+    }
   }
   function startSession() {
     const st = S.settings;
-    if (S.session) cleanupSession(S.session);
+    if (S.session) {
+      cleanupSession(S.session);
+    }
     const gen = canGenerate();
     S.session = {
       id: Date.now(),
@@ -1034,7 +1144,9 @@ export function startApp() {
     let bag = ss.bags[subject];
     if (!bag || !bag.length) {
       const pool = userPool(subject);
-      if (!pool.length) return null;
+      if (!pool.length) {
+        return null;
+      }
       bag = ss.bags[subject] = shuffle(pool.slice());
     }
     const r = bag.pop();
@@ -1047,10 +1159,14 @@ export function startApp() {
     const wantMine = ss.source === 'mine' || (ss.source === 'both' && Math.random() < 0.5) || !gen;
     if (wantMine) {
       const r = takeMine(ss, ss.subject);
-      if (r) return r;
+      if (r) {
+        return r;
+      }
       if (!gen) {
         const any = takeMine(ss, 'mixed');
-        if (any) return any;
+        if (any) {
+          return any;
+        }
         throw new Error('no-refs');
       }
     }
@@ -1115,7 +1231,9 @@ export function startApp() {
   }
   async function nextRound() {
     const ss = S.session;
-    if (!ss || ss.ended) return;
+    if (!ss || ss.ended) {
+      return;
+    }
     ss.idx++;
     if (ss.idx >= ss.total) {
       finishSession();
@@ -1134,8 +1252,9 @@ export function startApp() {
       img = await loadImg(ref.url);
     } catch (e) {
       toast(e && e.message === 'no-refs' ? 'Add some references first.' : 'Could not prepare a reference. Try again.');
-      if (ss.rounds.some(r => r && r.drawing)) finishSession();
-      else {
+      if (ss.rounds.some(r => r && r.drawing)) {
+        finishSession();
+      } else {
         S.session = null;
         show('home');
         renderHome();
@@ -1143,7 +1262,9 @@ export function startApp() {
       return;
     }
     ss.repeatRef = null;
-    if (S.session !== ss || ss.ended) return;
+    if (S.session !== ss || ss.ended) {
+      return;
+    }
     const L = 1000;
     const cw = ref.w >= ref.h ? L : Math.round((L * ref.w) / ref.h);
     const ch = ref.w >= ref.h ? Math.round((L * ref.h) / ref.w) : L;
@@ -1172,7 +1293,9 @@ export function startApp() {
     layoutStage();
     showReady(ss, round, false);
     await countdown(ss);
-    if (S.session !== ss || ss.ended) return;
+    if (S.session !== ss || ss.ended) {
+      return;
+    }
     beginDrawing(ss, round);
   }
   function beginDrawing(ss, round) {
@@ -1182,7 +1305,9 @@ export function startApp() {
     Timer.start(ss.secs * 1000, setTimerDisplay, () => endRound(ss, round));
   }
   function endRound(ss, round) {
-    if (S.session !== ss || !round || round.drawing) return;
+    if (S.session !== ss || !round || round.drawing) {
+      return;
+    }
     Timer.stop();
     sketch.lock(true);
     canvasPane.classList.add('is-locked');
@@ -1194,11 +1319,14 @@ export function startApp() {
       ss.onRoundEnd(round);
       return;
     }
-    if (ss.reviewEach) openReview(round, 'session');
-    else {
+    if (ss.reviewEach) {
+      openReview(round, 'session');
+    } else {
       timerEl.textContent = 'Time';
       setTimeout(() => {
-        if (S.session === ss && !ss.ended) nextRound();
+        if (S.session === ss && !ss.ended) {
+          nextRound();
+        }
       }, 650);
     }
   }
@@ -1236,10 +1364,13 @@ export function startApp() {
       return;
     }
     Timer.stop();
-    if (ss.cur && !ss.cur.drawing) ss.rounds[ss.idx] = null;
+    if (ss.cur && !ss.cur.drawing) {
+      ss.rounds[ss.idx] = null;
+    }
     ss.endedEarly = true;
-    if (done) finishSession();
-    else {
+    if (done) {
+      finishSession();
+    } else {
       ss.ended = true;
       cleanupSession(ss);
       S.session = null;
@@ -1299,7 +1430,9 @@ export function startApp() {
     layoutStage();
     showReady(ss, round, false);
     await countdown(ss);
-    if (S.session !== ss || ss.ended) return null;
+    if (S.session !== ss || ss.ended) {
+      return null;
+    }
     beginDrawing(ss, round);
     return round;
   }
@@ -1321,7 +1454,9 @@ export function startApp() {
     readyEl.hidden = true;
   }
   function recordDrawings(n) {
-    if (!n) return;
+    if (!n) {
+      return;
+    }
     const day = todayKey();
     S.profile.days[day] = (S.profile.days[day] || 0) + n;
     S.profile.total = (S.profile.total || 0) + n;
@@ -1333,7 +1468,9 @@ export function startApp() {
     viewerBox = $('#viewerBox');
   const OVERLAY_OPTS = { view: 'overlay', tint: 'red', opacity: 0.95, fade: false };
   function tinted(r) {
-    if (r.tinted) return r.tinted;
+    if (r.tinted) {
+      return r.tinted;
+    }
     const w = r.drawing.width,
       h = r.drawing.height;
     const c = mkCanvas(w, h);
@@ -1343,7 +1480,9 @@ export function startApp() {
       d = id.data;
     for (let i = 0; i < d.length; i += 4) {
       const a = d[i + 3];
-      if (!a) continue;
+      if (!a) {
+        continue;
+      }
       const L = (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
       d[i] = RED[0];
       d[i + 1] = RED[1];
@@ -1389,11 +1528,15 @@ export function startApp() {
   }
   function renderReviewCanvas() {
     const v = S.view;
-    if (!v || !$('#review').classList.contains('is-active')) return;
+    if (!v || !$('#review').classList.contains('is-active')) {
+      return;
+    }
     const r = v.round,
       o = v.o;
     const box = viewerBox.getBoundingClientRect();
-    if (box.width <= 0 || box.height <= 0) return;
+    if (box.width <= 0 || box.height <= 0) {
+      return;
+    }
     let W = r.cw,
       H = r.ch,
       layout = null;
@@ -1414,20 +1557,28 @@ export function startApp() {
     rc.style.height = Math.floor(H * scale) + 'px';
     rc.classList.toggle('is-draggable', o.view === 'overlay');
     compose(rc.getContext('2d'), r, o, layout, gap);
-    if (r.annotate) r.annotate(rc.getContext('2d'), { layout, gap, view: o.view });
+    if (r.annotate) {
+      r.annotate(rc.getContext('2d'), { layout, gap, view: o.view });
+    }
   }
   function recompose() {
     const v = S.view;
-    if (!v) return;
+    if (!v) {
+      return;
+    }
     const g = rc.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0);
     compose(g, v.round, v.o, v.layout, v.gap);
-    if (v.round.annotate) v.round.annotate(g, { layout: v.layout, gap: v.gap, view: v.o.view });
+    if (v.round.annotate) {
+      v.round.annotate(g, { layout: v.layout, gap: v.gap, view: v.o.view });
+    }
   }
   let drag = null;
   rc.addEventListener('pointerdown', e => {
     const v = S.view;
-    if (!v || v.o.view !== 'overlay') return;
+    if (!v || v.o.view !== 'overlay') {
+      return;
+    }
     e.preventDefault();
     const a = v.round.align;
     drag = {
@@ -1445,7 +1596,9 @@ export function startApp() {
     }
   });
   rc.addEventListener('pointermove', e => {
-    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag || e.pointerId !== drag.id) {
+      return;
+    }
     const a = S.view.round.align;
     a.dx = drag.dx + (e.clientX - drag.x) * drag.k;
     a.dy = drag.dy + (e.clientY - drag.y) * drag.k;
@@ -1516,7 +1669,9 @@ export function startApp() {
     }
   });
   $('#alignReset').addEventListener('click', () => {
-    if (!S.view) return;
+    if (!S.view) {
+      return;
+    }
     S.view.round.align = { dx: 0, dy: 0, s: 1 };
     $('#alignScale').value = 100;
     recompose();
@@ -1551,8 +1706,9 @@ export function startApp() {
       !round.empty &&
       !round.feedback &&
       !round.fbPending
-    )
+    ) {
       requestFeedback(round);
+    }
   }
   $('#nextBtn').addEventListener('click', () => {
     const v = S.view;
@@ -1661,18 +1817,23 @@ export function startApp() {
       .join('\n');
   }
   function cleanFeedback(fb, M) {
-    if (!fb || typeof fb !== 'object') throw { code: 'invalid_json' };
+    if (!fb || typeof fb !== 'object') {
+      throw { code: 'invalid_json' };
+    }
     const num = v => {
       const n = Math.round(Number(v));
       return n >= 1 && n <= 5 ? n : null;
     };
     const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max || 600) : '');
     const scores = {};
-    if (fb.scores && typeof fb.scores === 'object')
+    if (fb.scores && typeof fb.scores === 'object') {
       for (const c of M.criteria) {
         const n = num(fb.scores[c]);
-        if (n) scores[c] = n;
+        if (n) {
+          scores[c] = n;
+        }
       }
+    }
     const out = {
       score: num(fb.score),
       scores,
@@ -1681,11 +1842,15 @@ export function startApp() {
       drill: str(fb.drill),
       nextFocus: str(fb.nextFocus, 120),
     };
-    if (!out.score && !out.fix) throw { code: 'invalid_json' };
+    if (!out.score && !out.fix) {
+      throw { code: 'invalid_json' };
+    }
     return out;
   }
   async function requestFeedback(round) {
-    if (!aiReady() || round.fbPending || round.empty) return;
+    if (!aiReady() || round.fbPending || round.empty) {
+      return;
+    }
     round.fbPending = true;
     round.fbError = '';
     round.ctl = new AbortController();
@@ -1699,21 +1864,31 @@ export function startApp() {
       });
       round.feedback = cleanFeedback(fb, MODES[round.mode]);
       const ss = S.session;
-      if (ss && ss.rounds.includes(round) && round.feedback.nextFocus) ss.focus = round.feedback.nextFocus;
-      if (ss && ss.saved && ss.rounds.includes(round)) persistSession(ss);
+      if (ss && ss.rounds.includes(round) && round.feedback.nextFocus) {
+        ss.focus = round.feedback.nextFocus;
+      }
+      if (ss && ss.saved && ss.rounds.includes(round)) {
+        persistSession(ss);
+      }
     } catch (e) {
       const t = aiError(e);
-      if (t.hide) AI.off = true;
+      if (t.hide) {
+        AI.off = true;
+      }
       round.fbError = t.text;
     } finally {
       round.fbPending = false;
       round.ctl = null;
       refreshCoach(round);
-      if ($('#summary').classList.contains('is-active')) renderSummary();
+      if ($('#summary').classList.contains('is-active')) {
+        renderSummary();
+      }
     }
   }
   function refreshCoach(round) {
-    if (S.view && S.view.round === round && $('#review').classList.contains('is-active')) renderCoach(round);
+    if (S.view && S.view.round === round && $('#review').classList.contains('is-active')) {
+      renderCoach(round);
+    }
   }
   function renderCoach(r) {
     const box = $('#coach');
@@ -1728,7 +1903,7 @@ export function startApp() {
       );
     } else if (r.feedback) {
       const f = r.feedback;
-      if (f.score)
+      if (f.score) {
         kids.push(
           el(
             'div',
@@ -1743,13 +1918,17 @@ export function startApp() {
             ),
           ),
         );
-      if (f.worked)
+      }
+      if (f.worked) {
         kids.push(el('div', { class: 'fb-block' }, el('h3', { text: 'What worked' }), el('p', { text: f.worked })));
-      if (f.fix)
+      }
+      if (f.fix) {
         kids.push(el('div', { class: 'fb-block fix' }, el('h3', { text: 'Fix next' }), el('p', { text: f.fix })));
-      if (f.drill)
+      }
+      if (f.drill) {
         kids.push(el('div', { class: 'fb-block' }, el('h3', { text: 'Try this' }), el('p', { text: f.drill })));
-      if (f.nextFocus && from === 'session')
+      }
+      if (f.nextFocus && from === 'session') {
         kids.push(
           el(
             'div',
@@ -1758,6 +1937,7 @@ export function startApp() {
             el('p', { text: f.nextFocus }),
           ),
         );
+      }
     } else if (r.fbPending) {
       kids.push(el('div', { class: 'thinking' }, el('i'), 'Looking at your drawing…'));
       kids.push(
@@ -1775,13 +1955,17 @@ export function startApp() {
             type: 'button',
             text: 'Stop',
             onclick: () => {
-              if (r.ctl) r.ctl.abort();
+              if (r.ctl) {
+                r.ctl.abort();
+              }
             },
           }),
         ),
       );
     } else if (aiReady()) {
-      if (r.fbError) kids.push(el('p', { class: 'status is-error', text: r.fbError }));
+      if (r.fbError) {
+        kids.push(el('p', { class: 'status is-error', text: r.fbError }));
+      }
       kids.push(
         el('p', { text: 'Compare first: where does your drawing drift from the red overlay? Then ask the coach.' }),
       );
@@ -1801,7 +1985,9 @@ export function startApp() {
         el('p', { class: 'coach-note', text: 'Sends the reference, your drawing and the overlay to the coach.' }),
       );
     } else {
-      if (r.fbError) kids.push(el('p', { class: 'status is-error', text: r.fbError }));
+      if (r.fbError) {
+        kids.push(el('p', { class: 'status is-error', text: r.fbError }));
+      }
       kids.push(el('p', { text: 'Check it yourself against the overlay:' }));
       kids.push(
         el(
@@ -1818,7 +2004,9 @@ export function startApp() {
         onchange: e => {
           S.settings.autoFeedback = e.target.checked;
           saveSettings();
-          if (e.target.checked && !r.feedback && !r.fbPending && !r.empty) requestFeedback(r);
+          if (e.target.checked && !r.feedback && !r.fbPending && !r.empty) {
+            requestFeedback(r);
+          }
         },
       });
       cb.checked = !!S.settings.autoFeedback;
@@ -1827,15 +2015,20 @@ export function startApp() {
       );
     }
     const actions = el('div', { class: 'coach-actions' });
-    if (from === 'session' && S.session && !S.session.ended)
+    if (from === 'session' && S.session && !S.session.ended) {
       actions.append(el('button', { class: 'btn', type: 'button', text: 'Draw this one again', onclick: drawAgain }));
-    if (actions.childNodes.length) kids.push(actions);
+    }
+    if (actions.childNodes.length) {
+      kids.push(actions);
+    }
     box.replaceChildren(...kids);
   }
   function drawAgain() {
     const ss = S.session,
       v = S.view;
-    if (!ss || !v) return;
+    if (!ss || !v) {
+      return;
+    }
     ss.repeatRef = v.round.ref;
     ss.total += 1;
     nextRound();
@@ -1872,7 +2065,9 @@ export function startApp() {
   }
   function finishSession() {
     const ss = S.session;
-    if (!ss) return;
+    if (!ss) {
+      return;
+    }
     Timer.stop();
     ss.ended = true;
     readyEl.hidden = true;
@@ -1906,7 +2101,9 @@ export function startApp() {
   }
   function renderSummary() {
     const ss = S.session;
-    if (!ss) return;
+    if (!ss) {
+      return;
+    }
     const done = doneRounds(ss);
     const M = MODES[ss.mode];
     const sc = done.map(r => r.feedback && r.feedback.score).filter(Boolean);
@@ -1955,14 +2152,18 @@ export function startApp() {
     const kids = [el('h2', { text: 'Session review' })];
     if (ss.review) {
       const v = ss.review;
-      if (v.summary) kids.push(el('p', { text: v.summary }));
-      if (v.strength)
+      if (v.summary) {
+        kids.push(el('p', { text: v.summary }));
+      }
+      if (v.strength) {
         kids.push(el('div', { class: 'fb-block' }, el('h3', { text: 'Strength' }), el('p', { text: v.strength })));
-      if (v.pattern)
+      }
+      if (v.pattern) {
         kids.push(
           el('div', { class: 'fb-block fix' }, el('h3', { text: 'Keeps coming up' }), el('p', { text: v.pattern })),
         );
-      if (v.tomorrow)
+      }
+      if (v.tomorrow) {
         kids.push(
           el(
             'div',
@@ -1973,6 +2174,7 @@ export function startApp() {
             el('p', { text: v.tomorrow }),
           ),
         );
+      }
       kids.push(el('p', { class: 'coach-note', text: 'This focus now shows on the start screen.' }));
     } else if (ss.reviewPending) {
       kids.push(el('div', { class: 'thinking' }, el('i'), 'Reviewing the whole session…'));
@@ -1985,13 +2187,17 @@ export function startApp() {
             type: 'button',
             text: 'Stop',
             onclick: () => {
-              if (ss.reviewCtl) ss.reviewCtl.abort();
+              if (ss.reviewCtl) {
+                ss.reviewCtl.abort();
+              }
             },
           }),
         ),
       );
     } else if (aiReady()) {
-      if (ss.reviewError) kids.push(el('p', { class: 'status is-error', text: ss.reviewError }));
+      if (ss.reviewError) {
+        kids.push(el('p', { class: 'status is-error', text: ss.reviewError }));
+      }
       kids.push(
         el('p', {
           text: 'Get the pattern across all your drawings and one focus for next time. Open any drawing below to compare it or get feedback on it.',
@@ -2015,13 +2221,19 @@ export function startApp() {
     box.replaceChildren(...kids);
   }
   function evenly(n, k) {
-    if (k <= 0) return [];
-    if (n <= k) return [...Array(n).keys()];
+    if (k <= 0) {
+      return [];
+    }
+    if (n <= k) {
+      return [...Array(n).keys()];
+    }
     return [...Array(k).keys()].map(i => Math.round((i * (n - 1)) / (k - 1 || 1)));
   }
   async function requestSessionReview() {
     const ss = S.session;
-    if (!ss || !aiReady() || ss.reviewPending) return;
+    if (!ss || !aiReady() || ss.reviewPending) {
+      return;
+    }
     ss.reviewPending = true;
     ss.reviewError = '';
     ss.reviewCtl = new AbortController();
@@ -2073,7 +2285,9 @@ export function startApp() {
         .filter(Boolean)
         .join('\n');
       const opts = { modelTier: 'default', signal: ss.reviewCtl.signal };
-      if (blobs.length) opts.images = blobs;
+      if (blobs.length) {
+        opts.images = blobs;
+      }
       const res = await AI.sample.json(prompt, opts);
       const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
       const review = {
@@ -2083,7 +2297,9 @@ export function startApp() {
         tomorrow: str(res && res.tomorrow, 120),
         suggestMode: res && MODES[res.suggestMode] ? res.suggestMode : '',
       };
-      if (!review.summary && !review.tomorrow) throw { code: 'invalid_json' };
+      if (!review.summary && !review.tomorrow) {
+        throw { code: 'invalid_json' };
+      }
       ss.review = review;
       if (review.tomorrow) {
         S.profile.focus = review.tomorrow;
@@ -2094,12 +2310,16 @@ export function startApp() {
       persistSession(ss);
     } catch (e) {
       const t = aiError(e);
-      if (t.hide) AI.off = true;
+      if (t.hide) {
+        AI.off = true;
+      }
       ss.reviewError = t.text;
     } finally {
       ss.reviewPending = false;
       ss.reviewCtl = null;
-      if ($('#summary').classList.contains('is-active') && S.session === ss) renderSessionReview();
+      if ($('#summary').classList.contains('is-active') && S.session === ss) {
+        renderSessionReview();
+      }
     }
   }
 
@@ -2119,12 +2339,16 @@ export function startApp() {
     $('#dialog').hidden = true;
     const r = dialogResolve;
     dialogResolve = null;
-    if (r) r(v);
+    if (r) {
+      r(v);
+    }
   }
   $('#dlgOk').addEventListener('click', () => closeDialog(true));
   $('#dlgCancel').addEventListener('click', () => closeDialog(false));
   $('#dialog').addEventListener('click', e => {
-    if (e.target.id === 'dialog') closeDialog(false);
+    if (e.target.id === 'dialog') {
+      closeDialog(false);
+    }
   });
   let toastT = 0;
   function toast(msg) {
@@ -2169,7 +2393,9 @@ export function startApp() {
       c.width = ref.w;
       c.height = ref.h;
       g.drawImage(img, 0, 0);
-      if (ref.actionLine) drawCurve(g, ref.actionLine, '#ff5b3a', 10);
+      if (ref.actionLine) {
+        drawCurve(g, ref.actionLine, '#ff5b3a', 10);
+      }
       URL.revokeObjectURL(ref.url);
     } catch (e) {
       $('#heroCap').textContent = 'The sample pose could not be drawn here. Sessions can still use your own images.';
@@ -2180,7 +2406,9 @@ export function startApp() {
   $('#startBtn').addEventListener('click', startSession);
   $('#sumAgain').addEventListener('click', startSession);
   $('#sumHome').addEventListener('click', () => {
-    if (S.session) cleanupSession(S.session);
+    if (S.session) {
+      cleanupSession(S.session);
+    }
     S.session = null;
     show('home');
     renderHome();
@@ -2189,7 +2417,9 @@ export function startApp() {
   $('#reviewQuit').addEventListener('click', quitPrompt);
   $('#finishBtn').addEventListener('click', () => {
     const ss = S.session;
-    if (ss && ss.cur && readyEl.hidden) endRound(ss, ss.cur);
+    if (ss && ss.cur && readyEl.hidden) {
+      endRound(ss, ss.cur);
+    }
   });
   $('#timeDown').addEventListener('click', () => {
     const st = S.settings;
@@ -2210,7 +2440,9 @@ export function startApp() {
   $('#uploadBtn').addEventListener('click', () => $('#fileInput').click());
   $('#fileInput').addEventListener('change', e => {
     const f = e.target.files;
-    if (f && f.length) handleFiles(f);
+    if (f && f.length) {
+      handleFiles(f);
+    }
     e.target.value = '';
   });
   const drop = $('#dropZone');
@@ -2222,15 +2454,21 @@ export function startApp() {
   drop.addEventListener('drop', e => {
     e.preventDefault();
     drop.classList.remove('is-over');
-    if (e.dataTransfer && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+    if (e.dataTransfer && e.dataTransfer.files.length) {
+      handleFiles(e.dataTransfer.files);
+    }
   });
 
   document.addEventListener('keydown', e => {
     if (!$('#dialog').hidden) {
-      if (e.key === 'Escape') closeDialog(false);
+      if (e.key === 'Escape') {
+        closeDialog(false);
+      }
       return;
     }
-    if (!$('#draw').classList.contains('is-active') || !S.session) return;
+    if (!$('#draw').classList.contains('is-active') || !S.session) {
+      return;
+    }
     if (!readyEl.hidden && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       readyEl.click();
@@ -2241,28 +2479,51 @@ export function startApp() {
       sketch.undo();
       return;
     }
-    if (e.target && e.target.matches && e.target.matches('input, select, textarea')) return;
+    if (e.target && e.target.matches && e.target.matches('input, select, textarea')) {
+      return;
+    }
     const M = MODES[S.session.mode];
     const k = e.key.toLowerCase();
-    for (const t of M.tools) if (TOOLS[t].key === k) setTool(t);
-    if (M.swatches) for (const v of VALUES) if (v.key === e.key) setValue(v.id);
-    if (e.key === '[') changeSize(-1);
-    if (e.key === ']') changeSize(1);
-    if (e.key === 'Enter' && readyEl.hidden && S.session.cur && !S.session.cur.drawing)
+    for (const t of M.tools) {
+      if (TOOLS[t].key === k) {
+        setTool(t);
+      }
+    }
+    if (M.swatches) {
+      for (const v of VALUES) {
+        if (v.key === e.key) {
+          setValue(v.id);
+        }
+      }
+    }
+    if (e.key === '[') {
+      changeSize(-1);
+    }
+    if (e.key === ']') {
+      changeSize(1);
+    }
+    if (e.key === 'Enter' && readyEl.hidden && S.session.cur && !S.session.cur.drawing) {
       endRound(S.session, S.session.cur);
+    }
   });
   let resizeT = 0;
   window.addEventListener('resize', () => {
     cancelAnimationFrame(resizeT);
     resizeT = requestAnimationFrame(() => {
-      if ($('#draw').classList.contains('is-active')) layoutStage();
-      if ($('#review').classList.contains('is-active')) renderReviewCanvas();
+      if ($('#draw').classList.contains('is-active')) {
+        layoutStage();
+      }
+      if ($('#review').classList.contains('is-active')) {
+        renderReviewCanvas();
+      }
     });
   });
 
   $('#pauseBtn').addEventListener('click', () => {
     const ss = S.session;
-    if (ss && ss.onPause) ss.onPause();
+    if (ss && ss.onPause) {
+      ss.onPause();
+    }
   });
 
   renderHome();

@@ -28,15 +28,27 @@ export function gridBBox(mask, w, h) {
     count = 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (!mask[y * w + x]) continue;
+      if (!mask[y * w + x]) {
+        continue;
+      }
       count++;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
+      if (x < minX) {
+        minX = x;
+      }
+      if (x > maxX) {
+        maxX = x;
+      }
+      if (y < minY) {
+        minY = y;
+      }
+      if (y > maxY) {
+        maxY = y;
+      }
     }
   }
-  if (maxX < 0) return null;
+  if (maxX < 0) {
+    return null;
+  }
   return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1, count };
 }
 
@@ -59,17 +71,21 @@ function base(status, extra) {
 /* ref and drawn: { mask: Uint8Array|number[], w, h } on grids with the same aspect ratio as the canvas.
    ref may be null when the reference has no silhouette metadata. */
 export function analyzeShapes({ ref, drawn }) {
-  if (!ref || !ref.mask)
+  if (!ref || !ref.mask) {
     return base(ANALYSIS_STATUS.unavailable, {
       limitations: [
         'This reference has no verified silhouette, so shapes cannot be measured. Compare it yourself with the overlay.',
       ],
     });
+  }
   const rb = gridBBox(ref.mask, ref.w, ref.h);
   const db = drawn && gridBBox(drawn.mask, drawn.w, drawn.h);
-  if (!rb) return base(ANALYSIS_STATUS.unavailable, { limitations: ['The reference silhouette is empty.'] });
-  if (!db || db.count < SHAPE_TOLERANCES.minCoverage * drawn.w * drawn.h)
+  if (!rb) {
+    return base(ANALYSIS_STATUS.unavailable, { limitations: ['The reference silhouette is empty.'] });
+  }
+  if (!db || db.count < SHAPE_TOLERANCES.minCoverage * drawn.w * drawn.h) {
     return base(ANALYSIS_STATUS.empty, { limitations: ['No filled shapes were drawn.'] });
+  }
 
   // Work in reference grid cells; the drawn grid may have another resolution with the same aspect.
   const kx = ref.w / drawn.w,
@@ -92,8 +108,12 @@ export function analyzeShapes({ ref, drawn }) {
       const gx = Math.floor(((x + 0.5 - rcx) / s + dcx) / kx);
       const gy = Math.floor(((y + 0.5 - rcy) / s + dcy) / ky);
       const d = gx >= 0 && gy >= 0 && gx < drawn.w && gy < drawn.h && !!drawn.mask[gy * drawn.w + gx];
-      if (r && d) inter++;
-      if (r || d) union++;
+      if (r && d) {
+        inter++;
+      }
+      if (r || d) {
+        union++;
+      }
     }
   }
   const overlap = union ? inter / union : 0;

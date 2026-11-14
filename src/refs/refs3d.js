@@ -13,7 +13,9 @@ import {
   REF_COORDINATE_SYSTEM,
 } from './projection.js';
 
-if (T.ColorManagement) T.ColorManagement.legacyMode = false;
+if (T.ColorManagement) {
+  T.ColorManagement.legacyMode = false;
+}
 
 const D = Math.PI / 180;
 const DOWN = new T.Vector3(0, -1, 0);
@@ -39,7 +41,9 @@ const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
 let renderer = null;
 let glFailed = false;
 function getRenderer() {
-  if (renderer || glFailed) return renderer;
+  if (renderer || glFailed) {
+    return renderer;
+  }
   try {
     const canvas = document.createElement('canvas');
     renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
@@ -343,7 +347,9 @@ function levelFoot(J, k) {
   J.root.getWorldQuaternion(qRoot);
   const f = new T.Vector3(0, 0, 1).applyQuaternion(qRoot);
   f.y = 0;
-  if (f.lengthSq() < 1e-4) f.set(0, 0, 1);
+  if (f.lengthSq() < 1e-4) {
+    f.set(0, 0, 1);
+  }
   f.normalize();
   const out = (k === 'L' ? 1 : -1) * 10 * D;
   const yaw = Math.atan2(f.x, f.z) + out;
@@ -386,7 +392,13 @@ function boxCorners(box) {
   const a = box.min,
     b = box.max,
     out = [];
-  for (const x of [a.x, b.x]) for (const y of [a.y, b.y]) for (const z of [a.z, b.z]) out.push(new T.Vector3(x, y, z));
+  for (const x of [a.x, b.x]) {
+    for (const y of [a.y, b.y]) {
+      for (const z of [a.z, b.z]) {
+        out.push(new T.Vector3(x, y, z));
+      }
+    }
+  }
   return out;
 }
 
@@ -474,10 +486,14 @@ function figureScene(rng, opts) {
   const J = buildFigure(mat, jmat);
   scene.add(J.root);
   let pool = POSES;
-  if (opts && opts.tier) pool = pool.filter(p => POSE_TIER[p.name] === opts.tier);
+  if (opts && opts.tier) {
+    pool = pool.filter(p => POSE_TIER[p.name] === opts.tier);
+  }
   if (opts && opts.excludePose) {
     const rest = pool.filter(p => p.name !== opts.excludePose);
-    if (rest.length) pool = rest;
+    if (rest.length) {
+      pool = rest;
+    }
   }
   const P = pick(rng, pool);
   const mirror = rng() < 0.5;
@@ -538,7 +554,9 @@ function figureScene(rng, opts) {
       pelvis: [wp(J.root, 0, -0.02, 0), 0.14],
     };
     const landmarks = {};
-    for (const [k, [p]] of Object.entries(masses)) landmarks[k] = px(p);
+    for (const [k, [p]] of Object.entries(masses)) {
+      landmarks[k] = px(p);
+    }
     landmarks.neck = px(wp(J.neck, 0, 0, 0));
     for (const s of ['L', 'R']) {
       landmarks['shoulder' + s] = px(wp(J['sh' + s], 0, 0, 0));
@@ -550,7 +568,9 @@ function figureScene(rng, opts) {
       landmarks['ankle' + s] = px(wp(J['an' + s], 0, -0.03, 0.04));
     }
     const massRadii = {};
-    for (const [k, [p, r]] of Object.entries(masses)) massRadii[k] = projectedRadius(cam, p, r, w, h);
+    for (const [k, [p, r]] of Object.entries(masses)) {
+      massRadii[k] = projectedRadius(cam, p, r, w, h);
+    }
     return { actionLine: top2.concat(leg), landmarks, massRadii, actionLeg: reach[0] >= reach[1] ? 'L' : 'R' };
   };
   return {
@@ -640,7 +660,9 @@ function boxesScene(rng) {
       z = R(rng, -3, 3);
       ok = placed.every(p => Math.hypot(p.x - x, p.z - z) > (p.r + r) * 0.95);
     }
-    if (!ok) continue;
+    if (!ok) {
+      continue;
+    }
     boxes.push(addBox(scene, mat, w, h, d, x, h / 2, z, yaw));
     placed.push({ x, z, w, d, r, top: h });
   }
@@ -694,7 +716,9 @@ function streetScene(rng) {
   scene.fog = new T.Fog(BG, 30, 170);
   groundPlane(scene, 0x70757d, 500);
   const walk = stdMat(0x9ea3aa, 1);
-  for (const s of [-1, 1]) addBox(scene, walk, 3, 0.16, 400, s * 7.5, 0.08, -150, 0);
+  for (const s of [-1, 1]) {
+    addBox(scene, walk, 3, 0.16, 400, s * 7.5, 0.08, -150, 0);
+  }
   const mats = [0xcfcdc8, 0xb7bbc0, 0xd6d1ca, 0xadb2b8, 0xc2bfb9].map(c => stdMat(c, 0.92));
   const winMat = stdMat(0x5f656e, 0.6);
   const wins = [];
@@ -709,7 +733,9 @@ function streetScene(rng) {
       addBox(scene, pick(rng, mats), bd, bh, bw, x, bh / 2, zc, 0);
       const face = s * 9 - s * 0.02;
       for (let fy = 2.6; fy < bh - 1; fy += 3.2) {
-        for (let fz = z - 1.2; fz > z - bw + 0.9; fz -= 2.2) wins.push([face, fy, fz]);
+        for (let fz = z - 1.2; fz > z - bw + 0.9; fz -= 2.2) {
+          wins.push([face, fy, fz]);
+        }
       }
       z -= bw + (rng() < 0.3 ? R(rng, 0.5, 3) : 0);
     }
@@ -724,7 +750,7 @@ function streetScene(rng) {
   inst.receiveShadow = true;
   scene.add(inst);
   const pole = stdMat(0x4d525a, 0.6);
-  for (const s of [-1, 1])
+  for (const s of [-1, 1]) {
     for (let z = 8; z > -120; z -= 14) {
       const c = new T.Mesh(new T.CylinderGeometry(0.07, 0.09, 5, 10), pole);
       c.position.set(s * 6.4, 2.5, z);
@@ -732,6 +758,7 @@ function streetScene(rng) {
       scene.add(c);
       addBox(scene, pole, 0.9, 0.18, 0.3, s * 6.0, 5.0, z, 0);
     }
+  }
   const view = pick(rng, ['eye', 'eye', 'low', 'high']);
   const x = R(rng, -3, 3);
   const y = view === 'eye' ? 1.7 : view === 'low' ? 0.45 : R(rng, 18, 30);
@@ -814,7 +841,9 @@ function stillLifeScene(rng) {
       z = R(rng, -0.9, 0.7);
       ok = placed.every(p => Math.hypot(p.x - x, p.z - z) > p.r + r + 0.08);
     }
-    if (!ok) continue;
+    if (!ok) {
+      continue;
+    }
     mesh.position.x = x;
     mesh.position.z = z;
     mesh.rotation.y = R(rng, 0, Math.PI);
@@ -880,15 +909,17 @@ function colonnadeScene(rng) {
   }
   const view = pick(rng, ['center', 'center', 'diagonal', 'high']);
   let cam;
-  if (view === 'center')
+  if (view === 'center') {
     cam = camAt(56, new T.Vector3(R(rng, -1.4, 1.4), 1.6, 8), new T.Vector3(R(rng, -2.5, 2.5), R(rng, 1.2, 2.6), -30));
-  else if (view === 'diagonal')
+  } else if (view === 'diagonal') {
     cam = camAt(
       54,
       new T.Vector3((rng() < 0.5 ? -1 : 1) * R(rng, 7, 10), 1.7, R(rng, 4, 8)),
       new T.Vector3(0, 1.8, R(rng, -12, -6)),
     );
-  else cam = camAt(50, new T.Vector3(R(rng, -4, 4), R(rng, 8, 12), 10), new T.Vector3(0, 0, -14));
+  } else {
+    cam = camAt(50, new T.Vector3(R(rng, -4, 4), R(rng, 8, 12), 10), new T.Vector3(0, 0, -14));
+  }
   scene.add(new T.HemisphereLight(0xffffff, 0x6f757e, 0.4));
   keyLight(scene, rng, new T.Vector3(0, 0, -14), (rng() < 0.5 ? 1 : -1) * R(rng, 60, 110) * D, {
     intensity: 1.05,
@@ -915,9 +946,15 @@ function colonnadeScene(rng) {
 /* ---------- render ---------- */
 function disposeScene(scene) {
   scene.traverse(o => {
-    if (o.geometry && o.geometry !== SPHERE) o.geometry.dispose();
-    if (o.material) [].concat(o.material).forEach(m => m.dispose());
-    if (o.isLight && o.shadow && o.shadow.map) o.shadow.dispose();
+    if (o.geometry && o.geometry !== SPHERE) {
+      o.geometry.dispose();
+    }
+    if (o.material) {
+      [].concat(o.material).forEach(m => m.dispose());
+    }
+    if (o.isLight && o.shadow && o.shadow.map) {
+      o.shadow.dispose();
+    }
   });
 }
 
@@ -934,7 +971,9 @@ function renderSilhouette(r, built) {
     mh = Math.max(1, Math.round(built.h / MASK_DOWNSCALE));
   const prevBg = s.background;
   const hidden = (built.hide || []).map(o => [o, o.visible]);
-  for (const [o] of hidden) o.visible = false;
+  for (const [o] of hidden) {
+    o.visible = false;
+  }
   const flat = new T.MeshBasicMaterial({ color: 0x000000 });
   s.background = new T.Color(0xffffff);
   s.overrideMaterial = flat;
@@ -947,10 +986,14 @@ function renderSilhouette(r, built) {
   g.drawImage(r.domElement, 0, 0);
   const d = g.getImageData(0, 0, mw, mh).data;
   const mask = new Uint8Array(mw * mh);
-  for (let i = 0; i < mask.length; i++) mask[i] = d[i * 4] < 128 ? 1 : 0;
+  for (let i = 0; i < mask.length; i++) {
+    mask[i] = d[i * 4] < 128 ? 1 : 0;
+  }
   s.overrideMaterial = null;
   s.background = prevBg;
-  for (const [o, v] of hidden) o.visible = v;
+  for (const [o, v] of hidden) {
+    o.visible = v;
+  }
   flat.dispose();
   return { mask, w: mw, h: mh, sx: built.w / mw, sy: built.h / mh };
 }
@@ -958,7 +1001,9 @@ function renderSilhouette(r, built) {
 function keyLightOf(scene) {
   let key = null;
   scene.traverse(o => {
-    if (!key && o.isDirectionalLight && o.castShadow) key = o;
+    if (!key && o.isDirectionalLight && o.castShadow) {
+      key = o;
+    }
   });
   return key;
 }
@@ -970,12 +1015,15 @@ function referenceId(kind, scene, seed, opts) {
 
 async function generate(kind, seed, opts) {
   const r = getRenderer();
-  if (!r) throw new Error('webgl');
+  if (!r) {
+    throw new Error('webgl');
+  }
   const rng = rngFrom(seed);
   let built;
   let scene = 'figure';
-  if (kind === 'movement') built = figureScene(rng, opts);
-  else {
+  if (kind === 'movement') {
+    built = figureScene(rng, opts);
+  } else {
     const picked = pick(rng, PERSPECTIVE_SCENES);
     scene = opts && PERSPECTIVE_SCENES.includes(opts.scene) ? opts.scene : picked;
     built =
@@ -999,9 +1047,13 @@ async function generate(kind, seed, opts) {
     H = built.h;
   const geometry = Object.assign({ coordinateSystem: REF_COORDINATE_SYSTEM, width: W, height: H }, extra);
   const hz = horizon(cam, W, H);
-  if (hz) geometry.horizon = hz;
+  if (hz) {
+    geometry.horizon = hz;
+  }
   const key = keyLightOf(built.scene);
-  if (key) geometry.light = lightSide(cam, key.position, key.target.position);
+  if (key) {
+    geometry.light = lightSide(cam, key.position, key.target.position);
+  }
   let silhouetteMask = null;
   if (built.silhouetteRoot) {
     silhouetteMask = renderSilhouette(r, built);
@@ -1009,7 +1061,9 @@ async function generate(kind, seed, opts) {
     geometry.silhouette = { bbox: bb, maskWidth: silhouetteMask.w, maskHeight: silhouetteMask.h };
   }
   disposeScene(built.scene);
-  if (!blob) throw new Error('render');
+  if (!blob) {
+    throw new Error('render');
+  }
   const meta = {
     metaVersion: REF_META_VERSION,
     id: referenceId(kind, scene, seed, opts),

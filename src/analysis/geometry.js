@@ -14,16 +14,24 @@ export const toPair = (p, digits = 1) => {
 
 export function pathLength(P) {
   let n = 0;
-  for (let i = 1; i < P.length; i++) n += dist(P[i - 1], P[i]);
+  for (let i = 1; i < P.length; i++) {
+    n += dist(P[i - 1], P[i]);
+  }
   return n;
 }
 
 /* n points evenly spaced by arc length. */
 export function resample(P, n) {
-  if (!P.length) return [];
-  if (P.length === 1 || n < 2) return Array.from({ length: Math.max(1, n) }, () => ({ x: P[0].x, y: P[0].y }));
+  if (!P.length) {
+    return [];
+  }
+  if (P.length === 1 || n < 2) {
+    return Array.from({ length: Math.max(1, n) }, () => ({ x: P[0].x, y: P[0].y }));
+  }
   const total = pathLength(P);
-  if (total === 0) return Array.from({ length: n }, () => ({ x: P[0].x, y: P[0].y }));
+  if (total === 0) {
+    return Array.from({ length: n }, () => ({ x: P[0].x, y: P[0].y }));
+  }
   const step = total / (n - 1);
   const out = [{ x: P[0].x, y: P[0].y }];
   let i = 1,
@@ -44,7 +52,9 @@ export function resample(P, n) {
     }
   }
   const last = P[P.length - 1];
-  while (out.length < n) out.push({ x: last.x, y: last.y });
+  while (out.length < n) {
+    out.push({ x: last.x, y: last.y });
+  }
   return out;
 }
 
@@ -64,10 +74,18 @@ export function bbox(P) {
     maxX = -Infinity,
     maxY = -Infinity;
   for (const p of P) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.y > maxY) maxY = p.y;
+    if (p.x < minX) {
+      minX = p.x;
+    }
+    if (p.x > maxX) {
+      maxX = p.x;
+    }
+    if (p.y < minY) {
+      minY = p.y;
+    }
+    if (p.y > maxY) {
+      maxY = p.y;
+    }
   }
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
@@ -84,7 +102,9 @@ export function chordAngleDeg(P) {
 /* Signed difference a - b wrapped into (-180, 180]. Positive means a is rotated clockwise on screen. */
 export function angleDelta(a, b) {
   let d = (((a - b) % 360) + 360) % 360;
-  if (d > 180) d -= 360;
+  if (d > 180) {
+    d -= 360;
+  }
   return d;
 }
 
@@ -102,16 +122,26 @@ export function chordDeviations(P) {
 /* Bow: the largest signed deviation from the chord. 0 for a straight line. */
 export function signedBow(P) {
   let best = 0;
-  for (const d of chordDeviations(P)) if (Math.abs(d) > Math.abs(best)) best = d;
+  for (const d of chordDeviations(P)) {
+    if (Math.abs(d) > Math.abs(best)) {
+      best = d;
+    }
+  }
   return best;
 }
 
 /* 'straight', 'C' (bends one way) or 'S' (bends both ways), ignoring wobble below tol. */
 export function curveType(P, tol) {
   const dev = chordDeviations(P).filter(d => Math.abs(d) >= tol);
-  if (!dev.length) return CURVE.straight;
+  if (!dev.length) {
+    return CURVE.straight;
+  }
   let changes = 0;
-  for (let i = 1; i < dev.length; i++) if (Math.sign(dev[i]) !== Math.sign(dev[i - 1])) changes++;
+  for (let i = 1; i < dev.length; i++) {
+    if (Math.sign(dev[i]) !== Math.sign(dev[i - 1])) {
+      changes++;
+    }
+  }
   return changes === 0 ? CURVE.c : CURVE.s;
 }
 
@@ -119,7 +149,9 @@ export function curveType(P, tol) {
 export function normalizeTS(P) {
   const c = centroid(P);
   let r = 0;
-  for (const p of P) r += (p.x - c.x) ** 2 + (p.y - c.y) ** 2;
+  for (const p of P) {
+    r += (p.x - c.x) ** 2 + (p.y - c.y) ** 2;
+  }
   r = Math.sqrt(r / P.length) || 1;
   return P.map(p => ({ x: (p.x - c.x) / r, y: (p.y - c.y) / r }));
 }
@@ -127,7 +159,9 @@ export function normalizeTS(P) {
 export function meanPairDistance(A, B) {
   const n = Math.min(A.length, B.length);
   let s = 0;
-  for (let i = 0; i < n; i++) s += dist(A[i], B[i]);
+  for (let i = 0; i < n; i++) {
+    s += dist(A[i], B[i]);
+  }
   return s / n;
 }
 

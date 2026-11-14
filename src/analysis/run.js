@@ -54,12 +54,13 @@ const RUNNERS = {
 export function analyzeAttempt(objectiveId, input) {
   const O = OBJECTIVES[objectiveId];
   const run = RUNNERS[O ? O.evaluator : EVALUATOR.none];
-  if (input.empty)
+  if (input.empty) {
     return Object.assign({}, NONE, {
       evaluator: O ? O.evaluator : EVALUATOR.none,
       status: ANALYSIS_STATUS.empty,
       limitations: ['The canvas was empty when time ran out.'],
     });
+  }
   try {
     return run(input);
   } catch (e) {

@@ -17,8 +17,12 @@ export function createRateLimiter({ perMinute, perDay }) {
         clients.set(id, c);
       }
       c.recent = c.recent.filter(t => now - t < MINUTE_MS);
-      if (c.total >= perDay) return Math.ceil((Date.parse(day + 'T00:00:00Z') + 86400000 - now) / 1000);
-      if (c.recent.length >= perMinute) return Math.ceil((MINUTE_MS - (now - c.recent[0])) / 1000);
+      if (c.total >= perDay) {
+        return Math.ceil((Date.parse(day + 'T00:00:00Z') + 86400000 - now) / 1000);
+      }
+      if (c.recent.length >= perMinute) {
+        return Math.ceil((MINUTE_MS - (now - c.recent[0])) / 1000);
+      }
       c.recent.push(now);
       c.total++;
       return null;
@@ -53,8 +57,12 @@ export function createBudget({ dailyUsd }) {
 
 /* Constant-time comparison so the access code cannot be guessed byte by byte. */
 export function accessAllowed(expected, given) {
-  if (!expected) return true;
-  if (typeof given !== 'string') return false;
+  if (!expected) {
+    return true;
+  }
+  if (typeof given !== 'string') {
+    return false;
+  }
   const a = crypto.createHash('sha256').update(expected).digest();
   const b = crypto.createHash('sha256').update(given).digest();
   return crypto.timingSafeEqual(a, b);

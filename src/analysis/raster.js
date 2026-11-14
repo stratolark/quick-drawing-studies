@@ -11,7 +11,9 @@ const lum = (r, g, b) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
 export function lumFromRGBA(data) {
   const out = new Float32Array(data.length / 4);
-  for (let i = 0; i < out.length; i++) out[i] = lum(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = lum(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
+  }
   return out;
 }
 
@@ -33,7 +35,9 @@ export function tonesFromRGBA(data) {
 
 export function maskFromRGBA(data) {
   const out = new Uint8Array(data.length / 4);
-  for (let i = 0; i < out.length; i++) out[i] = data[i * 4 + 3] >= PAINT_ALPHA ? 1 : 0;
+  for (let i = 0; i < out.length; i++) {
+    out[i] = data[i * 4 + 3] >= PAINT_ALPHA ? 1 : 0;
+  }
   return out;
 }
 

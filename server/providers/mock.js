@@ -9,7 +9,7 @@ const SLOW_MS = 2500;
 function wait(ms, signal) {
   return new Promise((res, rej) => {
     const t = setTimeout(res, ms);
-    if (signal)
+    if (signal) {
       signal.addEventListener(
         'abort',
         () => {
@@ -18,6 +18,7 @@ function wait(ms, signal) {
         },
         { once: true },
       );
+    }
   });
 }
 
@@ -55,14 +56,25 @@ export function createMockProvider(cfg) {
     name: 'mock',
     model: 'mock-coach',
     async review(req, { signal }) {
-      if (mode === 'slow') await wait(SLOW_MS, signal);
-      if (mode === 'timeout') await wait(cfg.timeoutMs * 2, signal);
-      if (mode === 'error') throw { code: ERROR_CODE.providerError, log: 'mock error' };
-      if (mode === 'refuse') throw { code: ERROR_CODE.refused };
-      if (mode === 'malformed')
+      if (mode === 'slow') {
+        await wait(SLOW_MS, signal);
+      }
+      if (mode === 'timeout') {
+        await wait(cfg.timeoutMs * 2, signal);
+      }
+      if (mode === 'error') {
+        throw { code: ERROR_CODE.providerError, log: 'mock error' };
+      }
+      if (mode === 'refuse') {
+        throw { code: ERROR_CODE.refused };
+      }
+      if (mode === 'malformed') {
         return { raw: { mainIssue: 42 }, model: 'mock-coach', usage: { inputTokens: 0, outputTokens: 0 }, costUsd: 0 };
+      }
       const raw = mockFeedback(req);
-      if (mode === 'hallucinate') raw.mainIssue += ' Your torso is 37° off and the legs are 58% too long.';
+      if (mode === 'hallucinate') {
+        raw.mainIssue += ' Your torso is 37° off and the legs are 58% too long.';
+      }
       return { raw, model: 'mock-coach', usage: { inputTokens: 0, outputTokens: 0 }, costUsd: 0 };
     },
   };

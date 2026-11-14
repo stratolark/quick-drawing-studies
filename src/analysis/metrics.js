@@ -111,13 +111,17 @@ export function metricRows(evaluator) {
 }
 
 export function withinTolerance(row, v) {
-  if (v == null || row.tolerance == null) return null;
+  if (v == null || row.tolerance == null) {
+    return null;
+  }
   return row.better === BETTER.lower ? v <= row.tolerance : v >= row.tolerance;
 }
 
 /* Measured facts in display form, for the review screen and the AI request. */
 export function evidenceFor(analysis) {
-  if (!analysis || !analysis.metrics) return [];
+  if (!analysis || !analysis.metrics) {
+    return [];
+  }
   return metricRows(analysis.evaluator)
     .map(r => {
       const v = r.value(analysis.metrics);

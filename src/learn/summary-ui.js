@@ -20,12 +20,17 @@ const p = text => el('p', { text });
 const dim = text => el('p', { class: 'coach-note', text });
 
 function changeText(c) {
-  if (!c) return null;
-  if (!c.comparable) return c.reason;
+  if (!c) {
+    return null;
+  }
+  if (!c.comparable) {
+    return c.reason;
+  }
   const better = c.rows.filter(r => r.verdict === VERDICT.improved).map(r => r.label.toLowerCase());
   const worse = c.rows.filter(r => r.verdict === VERDICT.worse).map(r => r.label.toLowerCase());
-  if (!better.length && !worse.length)
+  if (!better.length && !worse.length) {
     return 'The measured values stayed about the same. Compare the two drawings to see what changed.';
+  }
   return [
     better.length ? 'Measurably better: ' + better.join(', ') + '.' : '',
     worse.length ? 'Measurably worse: ' + worse.join(', ') + '.' : '',
@@ -35,7 +40,9 @@ function changeText(c) {
 }
 
 function suggestionRow(L, track, s, apply) {
-  if (s.change === ADAPT.keep) return dim(s.reason);
+  if (s.change === ADAPT.keep) {
+    return dim(s.reason);
+  }
   return el(
     'div',
     { class: 'fb-block fb-next' },
@@ -78,7 +85,9 @@ function reflectionPanel(L) {
     placeholder: 'Or in your own words (optional)',
     'aria-label': 'Hardest part in your own words',
   });
-  if (live.reflection && live.reflection.note) text.value = live.reflection.note;
+  if (live.reflection && live.reflection.note) {
+    text.value = live.reflection.note;
+  }
   const saved = dim(live.reflection ? 'Saved.' : '');
   return panel(
     'What was hardest today?',
@@ -92,7 +101,9 @@ function reflectionPanel(L) {
         type: 'button',
         text: 'Save',
         onclick: () => {
-          if (!state.choice && !text.value.trim()) return;
+          if (!state.choice && !text.value.trim()) {
+            return;
+          }
           live.reflection = { choice: state.choice, note: text.value.trim().slice(0, 200), at: Date.now() };
           L.persist();
           saved.textContent = 'Saved. This is used for suggestions and kept apart from measured results.';
@@ -149,7 +160,7 @@ export function open(L) {
   );
 
   let testBody;
-  if (!transfer)
+  if (!transfer) {
     testBody = [
       p(
         live.plan.transfer_test.enabled
@@ -157,18 +168,19 @@ export function open(L) {
           : 'This session type has no independent test. Turn it on under "Adjust stages" to check whether a fix carries over to a new reference.',
       ),
     ];
-  else if (transfer.analysis.status !== ANALYSIS_STATUS.measured)
+  } else if (transfer.analysis.status !== ANALYSIS_STATUS.measured) {
     testBody = [p('The test drawing could not be measured.'), ...transfer.analysis.limitations.slice(0, 1).map(dim)];
-  else if (transfer.issues.primary)
+  } else if (transfer.issues.primary) {
     testBody = [
       p(transfer.issues.primary.measured),
       dim('One test is a single sample; your progress page combines several before it shows a trend.'),
     ];
-  else
+  } else {
     testBody = [
       p('The measured values were within tolerance on a reference you had not seen.'),
       dim('One test is a single sample; it does not prove the skill is settled.'),
     ];
+  }
   const test = panel('Independent test', ...testBody);
 
   const lastMeasured = [...main].reverse().find(e => e.issues && e.issues.measurable);

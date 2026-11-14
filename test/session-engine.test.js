@@ -30,7 +30,9 @@ function run(state, events) {
     t = 1;
   for (const ev of events) {
     const r = transition(s, ev, t++);
-    if (!r.ok) throw new Error(`${ev.type} rejected in ${s.stage}: ${r.reason}`);
+    if (!r.ok) {
+      throw new Error(`${ev.type} rejected in ${s.stage}: ${r.reason}`);
+    }
     s = r.state;
   }
   return s;
@@ -88,7 +90,9 @@ describe('curriculum plans', () => {
     for (const id of objectiveIds) {
       const O = OBJECTIVES[id];
       expect(O.secs.practice).toBeGreaterThan(0);
-      for (const p of O.prerequisites) expect(OBJECTIVES[p]).toBeTruthy();
+      for (const p of O.prerequisites) {
+        expect(OBJECTIVES[p]).toBeTruthy();
+      }
       expect(() => buildPlan(SESSION_TYPE.deep, id)).not.toThrow();
     }
   });

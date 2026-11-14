@@ -35,8 +35,9 @@ export function compareAnalyses(before, after) {
   const rows = def.rows.map(r => {
     const b = r.value(before.metrics),
       a = r.value(after.metrics);
-    if (b == null || a == null)
+    if (b == null || a == null) {
       return { key: r.key, label: r.label, before: null, after: null, verdict: VERDICT.unavailable };
+    }
     const gain = r.better === BETTER.lower ? b - a : a - b;
     const verdict = Math.abs(gain) < r.change ? VERDICT.similar : gain > 0 ? VERDICT.improved : VERDICT.worse;
     return {
@@ -50,6 +51,8 @@ export function compareAnalyses(before, after) {
     };
   });
   const counts = { improved: 0, worse: 0, similar: 0, unavailable: 0 };
-  for (const r of rows) counts[r.verdict]++;
+  for (const r of rows) {
+    counts[r.verdict]++;
+  }
   return { comparable: true, reason: null, rows, counts };
 }

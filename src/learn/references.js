@@ -32,7 +32,9 @@ function pickUserRef(api, objective, excludeId) {
   const pool = api.S.refs.filter(
     r => r.category === objective.reference.subject && 'upload:' + (r.docId || r.key) !== excludeId,
   );
-  if (!pool.length) return null;
+  if (!pool.length) {
+    return null;
+  }
   const r = pool[Math.floor(Math.random() * pool.length)];
   const label = 'Your reference image (' + r.category + ')';
   return {
@@ -54,8 +56,12 @@ export async function makeReference(api, objectiveId, opts) {
   const excludeId = o.exclude ? o.exclude.id : null;
   if (o.source === REF_SOURCE.mine || !api.canGenerate()) {
     const mine = pickUserRef(api, O, excludeId);
-    if (mine) return mine;
-    if (!api.canGenerate()) throw new Error(REF_ERROR.noRefs);
+    if (mine) {
+      return mine;
+    }
+    if (!api.canGenerate()) {
+      throw new Error(REF_ERROR.noRefs);
+    }
   }
   const movement = O.reference.subject === REF_SUBJECT.movement;
   const excludePose = o.exclude && o.exclude.difficulty ? o.exclude.difficulty.pose : null;
@@ -84,7 +90,9 @@ export async function makeReference(api, objectiveId, opts) {
 }
 
 export async function loadReference(ref) {
-  if (!ref.img) ref.img = await loadImg(ref.url);
+  if (!ref.img) {
+    ref.img = await loadImg(ref.url);
+  }
   return ref.img;
 }
 

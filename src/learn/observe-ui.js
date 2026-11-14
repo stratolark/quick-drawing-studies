@@ -39,7 +39,9 @@ function toneGridFor(ref) {
 
 const CHECKS = {
   [INTERACTION.traceActionLine]: (mark, meta) => {
-    if (!mark.pts || mark.pts.length < 2) return null;
+    if (!mark.pts || mark.pts.length < 2) {
+      return null;
+    }
     const m = compareLines(
       mark.pts,
       meta.geometry.actionLine.map(([x, y]) => ({ x, y })),
@@ -61,7 +63,9 @@ const CHECKS = {
   },
   [INTERACTION.boxSubject]: (mark, meta) => {
     const r = mark.rect;
-    if (!r || r.w < 4 || r.h < 4) return null;
+    if (!r || r.w < 4 || r.h < 4) {
+      return null;
+    }
     const b = meta.geometry.silhouette.bbox;
     const aspectError = r.h / r.w / (b.h / b.w) - 1;
     const ix = Math.max(0, Math.min(r.x + r.w, b.x + b.w) - Math.max(r.x, b.x)),
@@ -78,7 +82,9 @@ const CHECKS = {
     };
   },
   [INTERACTION.markHorizon]: (mark, meta) => {
-    if (mark.y == null) return null;
+    if (mark.y == null) {
+      return null;
+    }
     const err = (mark.y - meta.geometry.horizon.y) / meta.height;
     const text =
       Math.abs(err) <= HORIZON_TOLERANCE
@@ -87,7 +93,9 @@ const CHECKS = {
     return { text, metrics: { horizonError: Math.round(err * 1000) / 1000 } };
   },
   [INTERACTION.tapDarkest]: (mark, meta, toneGrid) => {
-    if (!mark.pt || !toneGrid) return null;
+    if (!mark.pt || !toneGrid) {
+      return null;
+    }
     const gx = Math.min(toneGrid.w - 1, Math.floor((mark.pt.x / meta.width) * toneGrid.w));
     const gy = Math.min(toneGrid.h - 1, Math.floor((mark.pt.y / meta.height) * toneGrid.h));
     const tone = toneGrid.tones[gy * toneGrid.w + gx];
@@ -153,26 +161,38 @@ function drawAnswer(ctx, kind, meta, toneGrid, W) {
     const cw = meta.width / toneGrid.w,
       ch = meta.height / toneGrid.h;
     ctx.fillStyle = COLORS.darkFill;
-    for (let y = 0; y < toneGrid.h; y++)
-      for (let x = 0; x < toneGrid.w; x++)
-        if (toneGrid.tones[y * toneGrid.w + x] === TONE.dark) ctx.fillRect(x * cw, y * ch, cw + 0.5, ch + 0.5);
+    for (let y = 0; y < toneGrid.h; y++) {
+      for (let x = 0; x < toneGrid.w; x++) {
+        if (toneGrid.tones[y * toneGrid.w + x] === TONE.dark) {
+          ctx.fillRect(x * cw, y * ch, cw + 0.5, ch + 0.5);
+        }
+      }
+    }
   }
   ctx.restore();
 }
 
 function redraw() {
   const o = O_;
-  if (!o) return;
+  if (!o) {
+    return;
+  }
   const ctx = o.canvas.getContext('2d');
   ctx.clearRect(0, 0, o.canvas.width, o.canvas.height);
-  if (o.showAnswer && o.verified) drawAnswer(ctx, o.kind, o.meta, o.toneGrid, o.W);
-  if (o.guide) drawSteps(ctx, o.guide.steps, o.guide.upto, o.guide.t);
+  if (o.showAnswer && o.verified) {
+    drawAnswer(ctx, o.kind, o.meta, o.toneGrid, o.W);
+  }
+  if (o.guide) {
+    drawSteps(ctx, o.guide.steps, o.guide.upto, o.guide.t);
+  }
   drawMark(ctx, o.kind, o.mark, o.W);
 }
 
 function layout() {
   const o = O_;
-  if (!o) return;
+  if (!o) {
+    return;
+  }
   const box = $('#observeStage').getBoundingClientRect();
   const aspect = o.meta.width / o.meta.height;
   let w = box.width,
@@ -200,9 +220,15 @@ function bindPointer(canvas) {
   let active = null;
   canvas.onpointerdown = e => {
     const o = O_;
-    if (!o || o.checked || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    if (e.pointerType === 'touch' && o.penSeen) return;
-    if (e.pointerType === 'pen') o.penSeen = true;
+    if (!o || o.checked || (e.pointerType === 'mouse' && e.button !== 0)) {
+      return;
+    }
+    if (e.pointerType === 'touch' && o.penSeen) {
+      return;
+    }
+    if (e.pointerType === 'pen') {
+      o.penSeen = true;
+    }
     e.preventDefault();
     active = e.pointerId;
     try {
@@ -211,23 +237,36 @@ function bindPointer(canvas) {
       /* capture is best effort */
     }
     const p = toRef(e);
-    if (o.kind === INTERACTION.traceActionLine) o.mark = { pts: [p] };
-    else if (o.kind === INTERACTION.boxSubject) o.mark = { start: p, rect: { x: p.x, y: p.y, w: 0, h: 0 } };
-    else if (o.kind === INTERACTION.markHorizon) o.mark = { y: p.y };
-    else o.mark = { pt: p };
+    if (o.kind === INTERACTION.traceActionLine) {
+      o.mark = { pts: [p] };
+    } else if (o.kind === INTERACTION.boxSubject) {
+      o.mark = { start: p, rect: { x: p.x, y: p.y, w: 0, h: 0 } };
+    } else if (o.kind === INTERACTION.markHorizon) {
+      o.mark = { y: p.y };
+    } else {
+      o.mark = { pt: p };
+    }
     redraw();
   };
   canvas.onpointermove = e => {
     const o = O_;
-    if (!o || e.pointerId !== active) return;
+    if (!o || e.pointerId !== active) {
+      return;
+    }
     const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     const p = toRef(list.length ? list[list.length - 1] : e);
-    if (o.kind === INTERACTION.traceActionLine) for (const ev of list.length ? list : [e]) o.mark.pts.push(toRef(ev));
-    else if (o.kind === INTERACTION.boxSubject) {
+    if (o.kind === INTERACTION.traceActionLine) {
+      for (const ev of list.length ? list : [e]) {
+        o.mark.pts.push(toRef(ev));
+      }
+    } else if (o.kind === INTERACTION.boxSubject) {
       const s = o.mark.start;
       o.mark.rect = { x: Math.min(s.x, p.x), y: Math.min(s.y, p.y), w: Math.abs(p.x - s.x), h: Math.abs(p.y - s.y) };
-    } else if (o.kind === INTERACTION.markHorizon) o.mark.y = p.y;
-    else o.mark.pt = p;
+    } else if (o.kind === INTERACTION.markHorizon) {
+      o.mark.y = p.y;
+    } else {
+      o.mark.pt = p;
+    }
     redraw();
   };
   const end = e => {
@@ -245,32 +284,39 @@ function bindPointer(canvas) {
 
 function renderSide() {
   const o = O_;
-  if (!o) return;
+  if (!o) {
+    return;
+  }
   const { objective: O, assist } = o;
   const kids = [el('h2', { text: 'What to look for' })];
-  if (assist.questions > 0)
+  if (assist.questions > 0) {
     kids.push(
       el('ul', { class: 'questions' }, ...O.questions.slice(0, assist.questions).map(q => el('li', { text: q }))),
     );
-  else
+  } else {
     kids.push(el('p', { text: 'Study the reference before you draw. There are no hints at the Independent level.' }));
+  }
 
   const markBlock = [
     el('h3', { class: 'section-label', text: 'Try it on the reference' }),
     el('p', { text: INTERACTIONS[o.kind].prompt }),
   ];
-  if (!o.verified)
+  if (!o.verified) {
     markBlock.push(
       el('p', {
         class: 'coach-note',
         text: 'This reference has no verified answer to check against, so compare your mark with the image yourself.',
       }),
     );
-  if (o.result) markBlock.push(el('div', { class: 'fb-block fix' }, el('p', { text: o.result.text })));
+  }
+  if (o.result) {
+    markBlock.push(el('div', { class: 'fb-block fix' }, el('p', { text: o.result.text })));
+  }
   const actions = el('div', { class: 'row-actions' });
-  if (o.tried && !o.checked && o.verified)
+  if (o.tried && !o.checked && o.verified) {
     actions.append(el('button', { class: 'btn', type: 'button', text: 'Check', onclick: () => check() }));
-  if (o.tried)
+  }
+  if (o.tried) {
     actions.append(
       el('button', {
         class: 'btn btn-ghost',
@@ -287,13 +333,16 @@ function renderSide() {
         },
       }),
     );
-  if (actions.childNodes.length) markBlock.push(actions);
+  }
+  if (actions.childNodes.length) {
+    markBlock.push(actions);
+  }
   kids.push(el('div', { class: 'fb-block' }, ...markBlock));
 
   // Hints come only after the learner has tried, and only at guidance levels that allow them.
   const hints = el('div', { class: 'row-actions' });
   const after = o.checked || (o.tried && !o.verified);
-  if (after && o.verified && assist.guidesAfterObserve === OVERLAYS.onRequest && !o.showAnswer)
+  if (after && o.verified && assist.guidesAfterObserve === OVERLAYS.onRequest && !o.showAnswer) {
     hints.append(
       el('button', {
         class: 'btn',
@@ -306,7 +355,8 @@ function renderSide() {
         },
       }),
     );
-  if (after && assist.constructionGuide && o.steps.length)
+  }
+  if (after && assist.constructionGuide && o.steps.length) {
     hints.append(
       el('button', {
         class: 'btn',
@@ -316,12 +366,16 @@ function renderSide() {
         onclick: () => playGuide(),
       }),
     );
-  if (hints.childNodes.length) kids.push(hints);
-  if (o.guide)
+  }
+  if (hints.childNodes.length) {
+    kids.push(hints);
+  }
+  if (o.guide) {
     kids.push(
       el('p', { class: 'coach-note', id: 'obsGuideStep', text: o.guide.label || '' }),
       el('p', { class: 'coach-note', text: GUIDE_LABEL + ': ' + GUIDE_NOTE }),
     );
+  }
   kids.push(
     el('p', {
       class: 'coach-note',
@@ -334,9 +388,13 @@ function renderSide() {
 function check() {
   const o = O_;
   o.result = CHECKS[o.kind](o.mark, o.meta, o.toneGrid);
-  if (!o.result) return;
+  if (!o.result) {
+    return;
+  }
   o.checked = true;
-  if (o.assist.guidesAfterObserve === OVERLAYS.auto) o.showAnswer = true;
+  if (o.assist.guidesAfterObserve === OVERLAYS.auto) {
+    o.showAnswer = true;
+  }
   o.L.live.observation = { interaction: o.kind, metrics: o.result.metrics, guidance: o.L.live.state.guidance };
   redraw();
   renderSide();
@@ -344,10 +402,14 @@ function check() {
 
 function playGuide() {
   const o = O_;
-  if (o.guide && o.guide.player) o.guide.player.stop();
+  if (o.guide && o.guide.player) {
+    o.guide.player.stop();
+  }
   o.guide = { steps: o.steps, upto: 0, t: 0, label: '' };
   o.guide.player = playSteps(o.steps, (i, t) => {
-    if (!O_ || !o.guide) return;
+    if (!O_ || !o.guide) {
+      return;
+    }
     o.guide.upto = i;
     o.guide.t = t;
     o.guide.label =
@@ -358,7 +420,9 @@ function playGuide() {
       ': ' +
       o.steps[Math.min(i, o.steps.length - 1)].label;
     const n = $('#obsGuideStep');
-    if (n) n.textContent = o.guide.label;
+    if (n) {
+      n.textContent = o.guide.label;
+    }
     redraw();
   });
   renderSide();
@@ -366,7 +430,9 @@ function playGuide() {
 
 function tickClock() {
   const o = O_;
-  if (!o) return;
+  if (!o) {
+    return;
+  }
   const left = Math.max(0, o.endsAt - Date.now());
   const s = Math.ceil(left / 1000);
   $('#observeClock').textContent =
@@ -417,9 +483,13 @@ export function open(L, ref) {
 }
 
 export function close() {
-  if (!O_) return;
+  if (!O_) {
+    return;
+  }
   clearInterval(O_.timer);
-  if (O_.guide && O_.guide.player) O_.guide.player.stop();
+  if (O_.guide && O_.guide.player) {
+    O_.guide.player.stop();
+  }
   O_ = null;
 }
 

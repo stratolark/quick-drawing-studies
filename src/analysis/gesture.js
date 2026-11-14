@@ -58,7 +58,9 @@ const LIMITATIONS = [
 export function linesFromStrokes(strokes) {
   let start = 0;
   strokes.forEach((s, i) => {
-    if (s.tool === 'clear') start = i + 1;
+    if (s.tool === 'clear') {
+      start = i + 1;
+    }
   });
   return strokes
     .slice(start)
@@ -82,7 +84,9 @@ export function buildCandidates(lines, diag) {
   const out = lines.map((pts, i) => ({ pts, order: i, parts: [i] }));
   for (let i = 0; i + 1 < lines.length; i++) {
     const j = joinPair(lines[i], lines[i + 1], GESTURE_TOLERANCES.joinGapFrac * diag);
-    if (j) out.push({ pts: j, order: i, parts: [i, i + 1] });
+    if (j) {
+      out.push({ pts: j, order: i, parts: [i, i + 1] });
+    }
   }
   return out;
 }
@@ -91,7 +95,9 @@ function scoreCandidate(c, diag) {
   const len = pathLength(c.pts);
   const chord = dist(c.pts[0], c.pts[c.pts.length - 1]);
   const tortuosity = chord > 0 ? len / chord : Infinity;
-  if (len < GESTURE_TOLERANCES.minLengthFrac * diag || tortuosity > GESTURE_TOLERANCES.maxTortuosity) return null;
+  if (len < GESTURE_TOLERANCES.minLengthFrac * diag || tortuosity > GESTURE_TOLERANCES.maxTortuosity) {
+    return null;
+  }
   const lengthScore = Math.min(1, len / (0.8 * diag));
   const spanScore = Math.min(1, chord / (0.7 * diag));
   const orderScore = 1 / (1 + 0.25 * c.order);
@@ -162,7 +168,9 @@ function baseAnalysis(status, extra) {
    canvas: { w, h } the drawing canvas size. selection: optional candidate index chosen by the learner. */
 export function analyzeGesture({ strokes, reference, canvas, selection }) {
   const lines = linesFromStrokes(strokes || []);
-  if (!lines.length) return baseAnalysis(ANALYSIS_STATUS.empty, { limitations: ['No pen lines were drawn.'] });
+  if (!lines.length) {
+    return baseAnalysis(ANALYSIS_STATUS.empty, { limitations: ['No pen lines were drawn.'] });
+  }
   const line = reference && reference.actionLine;
   if (!line || line.length < 2 || !reference.width || !reference.height) {
     return baseAnalysis(ANALYSIS_STATUS.unavailable, {
@@ -210,8 +218,9 @@ export function analyzeGesture({ strokes, reference, canvas, selection }) {
 
   const { metrics, drawn, ref } = compareLines(chosen.pts, refPts);
   const limitations = LIMITATIONS.slice();
-  if (ambiguous)
+  if (ambiguous) {
     limitations.push('Two strokes could be your main line. Pick the one you meant so the measurement uses it.');
+  }
   return baseAnalysis(ambiguous ? ANALYSIS_STATUS.ambiguous : ANALYSIS_STATUS.measured, {
     metrics,
     limitations,

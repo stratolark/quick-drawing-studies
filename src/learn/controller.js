@@ -64,7 +64,9 @@ export function createLearning(api, ui) {
     return { guidance: suggestGuidance(tp, g), tier: suggestTier(tp, t, g) };
   };
   L.savePrefs = () => {
-    if (!store.savePrefs(L.data.prefs)) api.toast('Could not save your settings in this browser.');
+    if (!store.savePrefs(L.data.prefs)) {
+      api.toast('Could not save your settings in this browser.');
+    }
   };
 
   /* ---------- session lifecycle ---------- */
@@ -115,7 +117,9 @@ export function createLearning(api, ui) {
 
   function dispatch(ev) {
     const live = L.live;
-    if (!live) return false;
+    if (!live) {
+      return false;
+    }
     const before = live.state.stage;
     const r = transition(live.state, ev, Date.now());
     if (!r.ok) {
@@ -124,7 +128,9 @@ export function createLearning(api, ui) {
     }
     live.state = r.state;
     persistSession();
-    if (live.state.stage !== before) enterStage();
+    if (live.state.stage !== before) {
+      enterStage();
+    }
     return true;
   }
   L.dispatch = dispatch;
@@ -132,7 +138,9 @@ export function createLearning(api, ui) {
   function persistSession() {
     const live = L.live;
     const refs = {};
-    for (const [role, ref] of Object.entries(live.refs)) refs[role] = toReferenceRecord(ref.meta);
+    for (const [role, ref] of Object.entries(live.refs)) {
+      refs[role] = toReferenceRecord(ref.meta);
+    }
     const transfer = live.state.attempts.find(a => a.type === ATTEMPT_TYPE.transfer);
     const rec = toSessionRecord(live.state, {
       references: refs,
@@ -148,7 +156,9 @@ export function createLearning(api, ui) {
       reflection: live.reflection,
     });
     rec.observation = live.observation;
-    if (!store.saveSession(rec)) api.toast('Could not save this session in the browser. It is still on screen.');
+    if (!store.saveSession(rec)) {
+      api.toast('Could not save this session in the browser. It is still on screen.');
+    }
     L.data.sessions = [rec].concat(L.data.sessions.filter(s => s.id !== rec.id));
   }
 
@@ -163,19 +173,25 @@ export function createLearning(api, ui) {
   const ENTER = {
     [STAGE.observe]: async () => {
       const ref = await ensureRef(REF_ROLE.focus);
-      if (ref) ui.observe.open(L, ref);
+      if (ref) {
+        ui.observe.open(L, ref);
+      }
     },
     [STAGE.warmup]: () => runWarmup(),
     [STAGE.focused]: async () => {
       const ref = await ensureRef(REF_ROLE.focus);
-      if (ref) runAttempt(ref, L.live.objectiveId, L.live.plan[STAGE.focused].secs);
+      if (ref) {
+        runAttempt(ref, L.live.objectiveId, L.live.plan[STAGE.focused].secs);
+      }
     },
     [STAGE.review]: () => openReview(reviewedAttempt(L.live.state).id, REVIEW_FROM.session),
     [STAGE.correction]: () =>
       runAttempt(L.live.refs[REF_ROLE.focus], L.live.objectiveId, L.live.plan[STAGE.correction].secs),
     [STAGE.transfer]: async () => {
       const ref = await ensureRef(REF_ROLE.transfer);
-      if (ref) runAttempt(ref, L.live.objectiveId, L.live.plan[STAGE.transfer].secs);
+      if (ref) {
+        runAttempt(ref, L.live.objectiveId, L.live.plan[STAGE.transfer].secs);
+      }
     },
     [STAGE.summary]: () => {
       api.stopDrawing();
@@ -186,7 +202,9 @@ export function createLearning(api, ui) {
 
   function enterStage() {
     const fn = ENTER[L.live.state.stage];
-    if (fn) Promise.resolve(fn()).catch(err => failStage(err));
+    if (fn) {
+      Promise.resolve(fn()).catch(err => failStage(err));
+    }
   }
 
   function failStage(err) {
@@ -202,7 +220,9 @@ export function createLearning(api, ui) {
 
   async function ensureRef(role) {
     const live = L.live;
-    if (live.refs[role]) return live.refs[role];
+    if (live.refs[role]) {
+      return live.refs[role];
+    }
     const ref = await makeReference(api, live.objectiveId, {
       source: live.source,
       tier: live.tier,
@@ -243,8 +263,11 @@ export function createLearning(api, ui) {
     const title =
       stage === STAGE.warmup ? `${STAGE_LABEL[stage]} ${n} of ${live.plan[STAGE.warmup].count}` : STAGE_LABEL[stage];
     let sub = '';
-    if (stage === STAGE.correction) sub = correction ? 'Fix: ' + correction : 'Same reference, second try';
-    else if (a.objective) sub = O.description + (stage === STAGE.warmup && live.warmIsReview ? ' (review)' : '');
+    if (stage === STAGE.correction) {
+      sub = correction ? 'Fix: ' + correction : 'Same reference, second try';
+    } else if (a.objective) {
+      sub = O.description + (stage === STAGE.warmup && live.warmIsReview ? ' (review)' : '');
+    }
     const focus = stage === STAGE.correction ? correction : a.objective ? O.description : '';
     return {
       title,
@@ -274,14 +297,18 @@ export function createLearning(api, ui) {
   function togglePause() {
     const live = L.live;
     const paused = !live.state.paused;
-    if (dispatch({ type: paused ? EVENT.pause : EVENT.resume })) api.pauseV2(live.ss, paused);
+    if (dispatch({ type: paused ? EVENT.pause : EVENT.resume })) {
+      api.pauseV2(live.ss, paused);
+    }
   }
 
   /* ---------- attempts ---------- */
 
   function onAttemptDone(round) {
     const live = L.live;
-    if (!live) return;
+    if (!live) {
+      return;
+    }
     const stage = live.state.stage;
     const type = ATTEMPT_TYPE_FOR_STAGE(stage);
     const ref = live.ss.ref;
@@ -325,7 +352,9 @@ export function createLearning(api, ui) {
     // Until the warm-up count is reached the stage does not change, so start the next warm-up here, after a short gap.
     if (recorded && type === ATTEMPT_TYPE.warmup && live.state.stage === STAGE.warmup) {
       setTimeout(() => {
-        if (L.live === live && live.state.stage === STAGE.warmup) enterStage();
+        if (L.live === live && live.state.stage === STAGE.warmup) {
+          enterStage();
+        }
       }, WARMUP_GAP_MS);
     }
   }
@@ -350,7 +379,9 @@ export function createLearning(api, ui) {
         : null,
       createdAt: entry.createdAt,
     });
-    if (!store.saveAttempt(rec)) api.toast('Could not save this drawing in the browser.');
+    if (!store.saveAttempt(rec)) {
+      api.toast('Could not save this drawing in the browser.');
+    }
     L.data.attempts = [rec].concat(L.data.attempts.filter(a => a.id !== rec.id));
   }
   L.saveAttempt = saveAttempt;
@@ -371,9 +402,14 @@ export function createLearning(api, ui) {
     entry.issues = rankIssues(entry.analysis, OBJECTIVES[entry.objectiveId]);
     entry.correctionObjective = entry.issues.primary ? entry.issues.primary.objective : '';
     const parent = entry.parentId && entryOf(entry.parentId);
-    if (parent) entry.comparison = compareAnalyses(parent.analysis, entry.analysis);
-    for (const child of L.live.entries.values())
-      if (child.parentId === entry.id) child.comparison = compareAnalyses(entry.analysis, child.analysis);
+    if (parent) {
+      entry.comparison = compareAnalyses(parent.analysis, entry.analysis);
+    }
+    for (const child of L.live.entries.values()) {
+      if (child.parentId === entry.id) {
+        child.comparison = compareAnalyses(entry.analysis, child.analysis);
+      }
+    }
     saveAttempt(entry);
   };
 
@@ -417,8 +453,9 @@ export function createLearning(api, ui) {
   }
 
   L.askCoach = async function askCoach(entry, style) {
-    if (!L.data.prefs.aiOptIn || !L.coach.available || entry.ai.status === AI_STATUS.pending || entry.round.empty)
+    if (!L.data.prefs.aiOptIn || !L.coach.available || entry.ai.status === AI_STATUS.pending || entry.round.empty) {
       return;
+    }
     const ai = entry.ai;
     ai.status = AI_STATUS.pending;
     ai.error = '';
@@ -447,7 +484,9 @@ export function createLearning(api, ui) {
     };
     try {
       const res = await requestCoachFeedback(payload, { signal: ai.ctl.signal });
-      if (ai.feedback) ai.history.push(ai.feedback);
+      if (ai.feedback) {
+        ai.history.push(ai.feedback);
+      }
       ai.feedback = res.feedback;
       ai.flags = res.flags;
       ai.model = res.model;
@@ -456,7 +495,9 @@ export function createLearning(api, ui) {
     } catch (e) {
       // A failed coach request never touches the measured results or the session state.
       const code = e && e.code;
-      if (code === ERROR_CODE.unavailable) L.coach = { available: false };
+      if (code === ERROR_CODE.unavailable) {
+        L.coach = { available: false };
+      }
       ai.status = ai.feedback ? AI_STATUS.done : code === ERROR_CODE.cancelled ? AI_STATUS.idle : AI_STATUS.error;
       ai.error = code === ERROR_CODE.cancelled ? '' : ERROR_TEXT[code] || ERROR_TEXT[ERROR_CODE.providerError];
     } finally {
@@ -488,11 +529,15 @@ export function createLearning(api, ui) {
 
   L.quit = async function quit() {
     const live = L.live;
-    if (!live) return;
+    if (!live) {
+      return;
+    }
     const drawing =
       live.ss.cur && !live.ss.cur.drawing && live.state.stage !== STAGE.review && live.state.stage !== STAGE.observe;
     const wasPaused = live.state.paused;
-    if (drawing && !wasPaused) togglePause();
+    if (drawing && !wasPaused) {
+      togglePause();
+    }
     const kept = live.state.attempts.length;
     const ok = await api.confirmDialog(
       'End this session?',
@@ -501,9 +546,13 @@ export function createLearning(api, ui) {
         : 'Nothing has been finished yet, so nothing will be saved.',
       'End session',
     );
-    if (L.live !== live) return;
+    if (L.live !== live) {
+      return;
+    }
     if (!ok) {
-      if (drawing && !wasPaused) togglePause();
+      if (drawing && !wasPaused) {
+        togglePause();
+      }
       return;
     }
     api.stopDrawing();
@@ -513,14 +562,22 @@ export function createLearning(api, ui) {
   };
 
   L.finish = function finish() {
-    if (!dispatch({ type: EVENT.finish })) finishToHome();
+    if (!dispatch({ type: EVENT.finish })) {
+      finishToHome();
+    }
   };
 
   function finishToHome() {
     const live = L.live;
     if (live) {
-      for (const e of live.entries.values()) if (e.ai.ctl) e.ai.ctl.abort();
-      for (const ref of Object.values(live.refs).concat(live.extraRefs)) releaseReference(ref);
+      for (const e of live.entries.values()) {
+        if (e.ai.ctl) {
+          e.ai.ctl.abort();
+        }
+      }
+      for (const ref of Object.values(live.refs).concat(live.extraRefs)) {
+        releaseReference(ref);
+      }
     }
     L.live = null;
     api.S.session = null;

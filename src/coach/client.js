@@ -42,8 +42,11 @@ export function getAccessCode() {
 }
 export function setAccessCode(v) {
   try {
-    if (v) localStorage.setItem(ACCESS_KEY, v);
-    else localStorage.removeItem(ACCESS_KEY);
+    if (v) {
+      localStorage.setItem(ACCESS_KEY, v);
+    } else {
+      localStorage.removeItem(ACCESS_KEY);
+    }
   } catch (e) {
     /* storage unavailable: the code lasts for this page only */
   }
@@ -54,14 +57,19 @@ function withTimeoutSignal(signal, ms) {
   const t = setTimeout(() => ctl.abort(new DOMException('timeout', 'TimeoutError')), ms);
   const onAbort = () => ctl.abort(signal.reason);
   if (signal) {
-    if (signal.aborted) onAbort();
-    else signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) {
+      onAbort();
+    } else {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
   }
   return {
     signal: ctl.signal,
     done: () => {
       clearTimeout(t);
-      if (signal) signal.removeEventListener('abort', onAbort);
+      if (signal) {
+        signal.removeEventListener('abort', onAbort);
+      }
     },
   };
 }
@@ -71,7 +79,9 @@ export async function coachHealth(fetchImpl) {
   const { signal, done } = withTimeoutSignal(null, HEALTH_TIMEOUT_MS);
   try {
     const r = await f(COACH_BASE + '/health', { signal, headers: { accept: 'application/json' } });
-    if (!r.ok) return { available: false };
+    if (!r.ok) {
+      return { available: false };
+    }
     const j = await r.json();
     return {
       available: j && j.ok === true,
@@ -95,13 +105,18 @@ export async function requestCoachFeedback(payload, opts) {
   try {
     const headers = { 'content-type': 'application/json', accept: 'application/json' };
     const code = o.accessCode != null ? o.accessCode : getAccessCode();
-    if (code) headers['x-qs-access'] = code;
+    if (code) {
+      headers['x-qs-access'] = code;
+    }
     r = await f(COACH_BASE + '/feedback', { method: 'POST', headers, body: JSON.stringify(payload), signal });
   } catch (e) {
     done();
-    if (o.signal && o.signal.aborted) throw { code: ERROR_CODE.cancelled };
-    if ((e && e.name === 'TimeoutError') || (signal.reason && signal.reason.name === 'TimeoutError'))
+    if (o.signal && o.signal.aborted) {
+      throw { code: ERROR_CODE.cancelled };
+    }
+    if ((e && e.name === 'TimeoutError') || (signal.reason && signal.reason.name === 'TimeoutError')) {
       throw { code: ERROR_CODE.timeout };
+    }
     throw { code: ERROR_CODE.unavailable };
   }
   try {
@@ -109,7 +124,9 @@ export async function requestCoachFeedback(payload, opts) {
       let code = STATUS_CODE[r.status] || ERROR_CODE.providerError;
       try {
         const j = await r.json();
-        if (j && j.error && Object.values(ERROR_CODE).includes(j.error.code)) code = j.error.code;
+        if (j && j.error && Object.values(ERROR_CODE).includes(j.error.code)) {
+          code = j.error.code;
+        }
       } catch (e) {
         /* non-JSON error body */
       }

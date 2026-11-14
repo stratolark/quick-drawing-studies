@@ -25,7 +25,9 @@ const LIMITATIONS = [
 /* Two thresholds that best split luminance values in [0, 1] into three groups (maximum between-class variance). */
 export function otsu3(lum) {
   const hist = new Float64Array(HIST_BINS);
-  for (const v of lum) hist[Math.min(HIST_BINS - 1, Math.max(0, Math.floor(v * HIST_BINS)))]++;
+  for (const v of lum) {
+    hist[Math.min(HIST_BINS - 1, Math.max(0, Math.floor(v * HIST_BINS)))]++;
+  }
   const n = lum.length;
   const P = new Float64Array(HIST_BINS + 1),
     S = new Float64Array(HIST_BINS + 1);
@@ -55,7 +57,9 @@ export function otsu3(lum) {
 
 export function classifyLuminance(lum, [t1, t2]) {
   const out = new Uint8Array(lum.length);
-  for (let i = 0; i < lum.length; i++) out[i] = lum[i] < t1 ? TONE.dark : lum[i] < t2 ? TONE.mid : TONE.light;
+  for (let i = 0; i < lum.length; i++) {
+    out[i] = lum[i] < t1 ? TONE.dark : lum[i] < t2 ? TONE.mid : TONE.light;
+  }
   return out;
 }
 
@@ -63,13 +67,15 @@ function darkStats(tones, w, h) {
   let n = 0,
     sx = 0,
     sy = 0;
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++)
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
       if (tones[y * w + x] === TONE.dark) {
         n++;
         sx += x + 0.5;
         sy += y + 0.5;
       }
+    }
+  }
   return { frac: n / (w * h), cx: n ? sx / n : null, cy: n ? sy / n : null, n };
 }
 
@@ -91,13 +97,21 @@ function base(status, extra) {
 
 /* refLum: luminance grid of the reference (0..1). drawnTones: TONE grid of the study. Same w x h. */
 export function analyzeValues({ refLum, drawnTones, w, h, lightSide }) {
-  if (!refLum || refLum.length !== w * h)
+  if (!refLum || refLum.length !== w * h) {
     return base(ANALYSIS_STATUS.unavailable, { limitations: ['The reference pixels could not be read.'] });
-  if (!drawnTones || drawnTones.length !== w * h) return base(ANALYSIS_STATUS.empty);
+  }
+  if (!drawnTones || drawnTones.length !== w * h) {
+    return base(ANALYSIS_STATUS.empty);
+  }
   let ink = 0;
-  for (const t of drawnTones) if (t !== TONE.light) ink++;
-  if (ink < VALUE_TOLERANCES.minInk * w * h)
+  for (const t of drawnTones) {
+    if (t !== TONE.light) {
+      ink++;
+    }
+  }
+  if (ink < VALUE_TOLERANCES.minInk * w * h) {
     return base(ANALYSIS_STATUS.empty, { limitations: ['Almost nothing was blocked in.'] });
+  }
 
   const thresholds = otsu3(refLum);
   const refTones = classifyLuminance(refLum, thresholds);
@@ -105,18 +119,26 @@ export function analyzeValues({ refLum, drawnTones, w, h, lightSide }) {
     inter = 0,
     union = 0;
   for (let i = 0; i < refTones.length; i++) {
-    if (refTones[i] === drawnTones[i]) agree++;
+    if (refTones[i] === drawnTones[i]) {
+      agree++;
+    }
     const rd = refTones[i] === TONE.dark,
       dd = drawnTones[i] === TONE.dark;
-    if (rd && dd) inter++;
-    if (rd || dd) union++;
+    if (rd && dd) {
+      inter++;
+    }
+    if (rd || dd) {
+      union++;
+    }
   }
   const r = darkStats(refTones, w, h),
     d = darkStats(drawnTones, w, h);
   const diag = Math.hypot(w, h);
   const offset = r.n && d.n ? Math.hypot(d.cx - r.cx, d.cy - r.cy) / diag : null;
   const limitations = LIMITATIONS.slice();
-  if (!r.n) limitations.push('The reference has almost no dark group, so dark placement is not measured.');
+  if (!r.n) {
+    limitations.push('The reference has almost no dark group, so dark placement is not measured.');
+  }
   return base(ANALYSIS_STATUS.measured, {
     metrics: {
       refDarkFrac: round(r.frac, 3),

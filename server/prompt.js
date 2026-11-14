@@ -44,22 +44,27 @@ export function buildUserContent(req) {
   ];
   if (req.evidence.length) {
     lines.push('Verified measurements (from the app, not from you):');
-    for (const e of req.evidence)
+    for (const e of req.evidence) {
       lines.push(
         `- [${e.key}] ${e.label}: ${e.display}${e.within === true ? ' (within tolerance)' : e.within === false ? ' (outside tolerance)' : ''}`,
       );
+    }
   } else {
     lines.push(
       'No automatic measurements are available for this exercise; base your review on what is visible and say how certain you are.',
     );
   }
-  if (req.measuredIssue) lines.push(`Measured main issue: ${req.measuredIssue.measured}`);
-  if (req.previousFeedback)
+  if (req.measuredIssue) {
+    lines.push(`Measured main issue: ${req.measuredIssue.measured}`);
+  }
+  if (req.previousFeedback) {
     lines.push(
       `Earlier feedback on this reference said: ${JSON.stringify(req.previousFeedback.mainIssue)}. Say whether that problem is still visible.`,
     );
-  if (req.style === STYLE.simpler)
+  }
+  if (req.style === STYLE.simpler) {
     lines.push('The learner asked for a clearer explanation: use plain words, no jargon, and a very concrete action.');
+  }
   lines.push(
     'In evidence, cite measurement keys in square brackets above as the source, or "visual" for something you can see. Reply with the JSON object only.',
   );

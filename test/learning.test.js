@@ -197,7 +197,7 @@ describe('storage', () => {
   it('caps stored attempts and keeps the newest first', () => {
     const store = createStorage(memoryBackend());
     store.load();
-    for (let i = 0; i < 405; i++)
+    for (let i = 0; i < 405; i++) {
       store.saveAttempt(
         toAttemptRecord({
           id: 'x' + i,
@@ -208,6 +208,7 @@ describe('storage', () => {
           createdAt: i,
         }),
       );
+    }
     const data = store.load();
     expect(data.attempts).toHaveLength(400);
     expect(data.attempts[0].id).toBe('x404');

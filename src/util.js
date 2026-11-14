@@ -6,17 +6,28 @@ export function el(tag, props, ...kids) {
   const n = document.createElement(tag);
   if (props) {
     for (const [k, v] of Object.entries(props)) {
-      if (v == null || v === false) continue;
-      if (k === 'class') n.className = v;
-      else if (k === 'text') n.textContent = v;
-      else if (k === 'html') n.innerHTML = v;
-      else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
-      else if (k === 'style') n.style.cssText = v;
-      else n.setAttribute(k, v === true ? '' : String(v));
+      if (v == null || v === false) {
+        continue;
+      }
+      if (k === 'class') {
+        n.className = v;
+      } else if (k === 'text') {
+        n.textContent = v;
+      } else if (k === 'html') {
+        n.innerHTML = v;
+      } else if (k.startsWith('on') && typeof v === 'function') {
+        n.addEventListener(k.slice(2), v);
+      } else if (k === 'style') {
+        n.style.cssText = v;
+      } else {
+        n.setAttribute(k, v === true ? '' : String(v));
+      }
     }
   }
   for (const k of kids.flat()) {
-    if (k == null || k === false) continue;
+    if (k == null || k === false) {
+      continue;
+    }
     n.append(k.nodeType ? k : document.createTextNode(String(k)));
   }
   return n;
@@ -33,7 +44,9 @@ export function fmtDate(key) {
   const p = String(key || '')
     .split('-')
     .map(Number);
-  if (p.length !== 3 || p.some(isNaN)) return '';
+  if (p.length !== 3 || p.some(isNaN)) {
+    return '';
+  }
   return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString(undefined, {
     weekday: 'short',
     day: 'numeric',

@@ -162,7 +162,9 @@ const RULES = {
 /* Ranked issues for a measured analysis. Returns { primary, others, measurable }. */
 export function rankIssues(analysis, objective) {
   const measurable = !!analysis && analysis.status === ANALYSIS_STATUS.measured;
-  if (!measurable) return { primary: null, others: [], measurable: false };
+  if (!measurable) {
+    return { primary: null, others: [], measurable: false };
+  }
   const focus = objective && objective.focusMetric;
   const found = (RULES[analysis.evaluator] || [])
     .map(rule => rule(analysis.metrics))

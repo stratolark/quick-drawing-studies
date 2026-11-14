@@ -182,7 +182,9 @@ describe('gesture analysis', () => {
 
   it('does not read a scribble as a line of action', () => {
     const scribble = [];
-    for (let i = 0; i < 60; i++) scribble.push([300 + (i % 2) * 200, 200 + i * 4]);
+    for (let i = 0; i < 60; i++) {
+      scribble.push([300 + (i % 2) * 200, 200 + i * 4]);
+    }
     expect(run([stroke(scribble)]).status).toBe(ANALYSIS_STATUS.unavailable);
   });
 

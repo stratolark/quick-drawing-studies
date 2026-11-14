@@ -84,7 +84,9 @@ function serveStatic(root, req, res) {
     send(res, 404, { error: { code: 'not_found' } });
     return;
   }
-  if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(base, 'index.html');
+  if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+    file = path.join(base, 'index.html');
+  }
   res.writeHead(200, {
     'content-type': STATIC_TYPES[path.extname(file)] || 'application/octet-stream',
     'x-content-type-options': 'nosniff',
@@ -148,7 +150,9 @@ export function createCoachHandler({ cfg, provider, log = console.log }) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort('timeout'), cfg.timeoutMs);
     res.on('close', () => {
-      if (!res.writableEnded) ctl.abort('cancelled');
+      if (!res.writableEnded) {
+        ctl.abort('cancelled');
+      }
     });
     try {
       const out = await provider.review(v.value, { signal: ctl.signal });
@@ -157,9 +161,13 @@ export function createCoachHandler({ cfg, provider, log = console.log }) {
       send(res, 200, { apiVersion: COACH_API_VERSION, feedback: clean.feedback, flags: clean.flags, model: out.model });
       done(200, null, `in=${out.usage.inputTokens} out=${out.usage.outputTokens} usd=${out.costUsd.toFixed(4)}`);
     } catch (e) {
-      if (e && e.costUsd) budget.record(e.costUsd);
+      if (e && e.costUsd) {
+        budget.record(e.costUsd);
+      }
       const code = e && e.code && STATUS_FOR[e.code] ? e.code : ERROR_CODE.providerError;
-      if (!res.writableEnded && !res.destroyed) sendError(res, code);
+      if (!res.writableEnded && !res.destroyed) {
+        sendError(res, code);
+      }
       done(STATUS_FOR[code], code, e && e.log ? e.log : e && !e.code ? String(e.message || e) : '');
     } finally {
       clearTimeout(timer);

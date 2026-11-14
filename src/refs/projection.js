@@ -22,7 +22,9 @@ export function inFront(cam, p) {
 export function vanishingPoint(cam, dir, w, h) {
   const d = dir.clone().normalize();
   const camDir = d.clone().transformDirection(cam.matrixWorldInverse);
-  if (Math.abs(camDir.z) < 1e-6) return null;
+  if (Math.abs(camDir.z) < 1e-6) {
+    return null;
+  }
   const toward = camDir.z < 0 ? d : d.clone().negate();
   return toPx(cam, cam.position.clone().addScaledVector(toward, AT_INFINITY), w, h);
 }
@@ -33,12 +35,16 @@ export function horizon(cam, w, h) {
   const fwd = new T.Vector3();
   cam.getWorldDirection(fwd);
   const flat = new T.Vector3(fwd.x, 0, fwd.z);
-  if (flat.lengthSq() < 1e-8) return null;
+  if (flat.lengthSq() < 1e-8) {
+    return null;
+  }
   flat.normalize();
   const side = new T.Vector3().crossVectors(flat, new T.Vector3(0, 1, 0)).normalize();
   const a = vanishingPoint(cam, flat.clone().addScaledVector(side, 0.25), w, h);
   const b = vanishingPoint(cam, flat.clone().addScaledVector(side, -0.25), w, h);
-  if (!a || !b) return null;
+  if (!a || !b) {
+    return null;
+  }
   const y = (a[1] + b[1]) / 2;
   const [l, r] = a[0] <= b[0] ? [a, b] : [b, a];
   return { y, inFrame: y >= 0 && y <= h, rollDeg: (Math.atan2(r[1] - l[1], r[0] - l[0]) * 180) / Math.PI };
@@ -78,13 +84,25 @@ export function maskBBox(mask, mw, mh, sx, sy = sx) {
     maxY = -1;
   for (let y = 0; y < mh; y++) {
     for (let x = 0; x < mw; x++) {
-      if (!mask[y * mw + x]) continue;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
+      if (!mask[y * mw + x]) {
+        continue;
+      }
+      if (x < minX) {
+        minX = x;
+      }
+      if (x > maxX) {
+        maxX = x;
+      }
+      if (y < minY) {
+        minY = y;
+      }
+      if (y > maxY) {
+        maxY = y;
+      }
     }
   }
-  if (maxX < 0) return null;
+  if (maxX < 0) {
+    return null;
+  }
   return { x: minX * sx, y: minY * sy, w: (maxX - minX + 1) * sx, h: (maxY - minY + 1) * sy };
 }

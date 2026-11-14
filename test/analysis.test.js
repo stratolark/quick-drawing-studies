@@ -12,7 +12,11 @@ import { horizon, vanishingPoint, maskBBox } from '../src/refs/projection.js';
 
 function rectMask(w, h, x0, y0, x1, y1) {
   const m = new Uint8Array(w * h);
-  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) m[y * w + x] = 1;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      m[y * w + x] = 1;
+    }
+  }
   return m;
 }
 
@@ -59,13 +63,20 @@ describe('values analysis', () => {
   /* Reference: light background, mid band, dark block on the right. */
   function refLum() {
     const l = new Float32Array(W * H);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) l[y * W + x] = x >= 15 ? 0.15 : x >= 8 ? 0.55 : 0.9;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        l[y * W + x] = x >= 15 ? 0.15 : x >= 8 ? 0.55 : 0.9;
+      }
+    }
     return l;
   }
   function tones(darkFrom, midFrom) {
     const t = new Uint8Array(W * H);
-    for (let y = 0; y < H; y++)
-      for (let x = 0; x < W; x++) t[y * W + x] = x >= darkFrom ? TONE.dark : x >= midFrom ? TONE.mid : TONE.light;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        t[y * W + x] = x >= darkFrom ? TONE.dark : x >= midFrom ? TONE.mid : TONE.light;
+      }
+    }
     return t;
   }
 
@@ -89,7 +100,11 @@ describe('values analysis', () => {
     const few = analyzeValues({ refLum: refLum(), drawnTones: tones(19, 8), w: W, h: H });
     expect(rankIssues(few, OBJECTIVES['values.three-values']).primary.id).toBe('values.dark-coverage');
     const wrongSide = new Uint8Array(W * H);
-    for (let y = 0; y < H; y++) for (let x = 0; x < 5; x++) wrongSide[y * W + x] = TONE.dark;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < 5; x++) {
+        wrongSide[y * W + x] = TONE.dark;
+      }
+    }
     const w = analyzeValues({ refLum: refLum(), drawnTones: wrongSide, w: W, h: H, lightSide: 'left' });
     const issues = rankIssues(w, OBJECTIVES['values.light-direction']);
     expect(issues.primary.id).toBe('values.dark-placement');

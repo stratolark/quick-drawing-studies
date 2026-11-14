@@ -13,9 +13,13 @@ describe('feedback-quality dataset', () => {
   it.each(CASES.map(c => [c.id, c]))('%s', (_, c) => {
     const a = analyzeGesture({ strokes: c.strokes, reference: c.reference, canvas: CANVAS });
     expect(a.status).toBe(c.expect.status);
-    if (!('primary' in c.expect)) return;
+    if (!('primary' in c.expect)) {
+      return;
+    }
     const r = rankIssues(a, OBJECTIVES[c.objective]);
     expect(r.primary ? r.primary.id : null).toBe(c.expect.primary);
-    if (c.expect.uncertainty) expect(r.primary.uncertainty).toBeTruthy();
+    if (c.expect.uncertainty) {
+      expect(r.primary.uncertainty).toBeTruthy();
+    }
   });
 });

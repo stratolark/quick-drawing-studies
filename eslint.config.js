@@ -20,4 +20,10 @@ export default [
     },
   },
   prettier,
+  {
+    rules: {
+      // After eslint-config-prettier, which turns curly off. With 'all', Prettier never conflicts (2026-11-14).
+      curly: ['error', 'all'],
+    },
+  },
 ];

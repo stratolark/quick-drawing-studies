@@ -32,17 +32,30 @@ export function costUsd(model, usage) {
 }
 
 function mapError(e, signal) {
-  if (e instanceof APIUserAbortError)
+  if (e instanceof APIUserAbortError) {
     return { code: signal && signal.reason === 'timeout' ? ERROR_CODE.timeout : ERROR_CODE.cancelled };
-  if (e instanceof APIConnectionTimeoutError) return { code: ERROR_CODE.timeout };
-  if (e instanceof RateLimitError) return { code: ERROR_CODE.rateLimited };
-  if (e instanceof AuthenticationError || e instanceof PermissionDeniedError)
+  }
+  if (e instanceof APIConnectionTimeoutError) {
+    return { code: ERROR_CODE.timeout };
+  }
+  if (e instanceof RateLimitError) {
+    return { code: ERROR_CODE.rateLimited };
+  }
+  if (e instanceof AuthenticationError || e instanceof PermissionDeniedError) {
     return { code: ERROR_CODE.providerError, log: 'provider rejected the API key' };
-  if (e instanceof BadRequestError)
+  }
+  if (e instanceof BadRequestError) {
     return { code: ERROR_CODE.providerError, log: 'provider rejected the request: ' + e.message };
-  if (e instanceof InternalServerError) return { code: ERROR_CODE.unavailable };
-  if (e instanceof APIConnectionError) return { code: ERROR_CODE.unavailable };
-  if (e instanceof APIError) return { code: ERROR_CODE.providerError, log: 'provider error ' + e.status };
+  }
+  if (e instanceof InternalServerError) {
+    return { code: ERROR_CODE.unavailable };
+  }
+  if (e instanceof APIConnectionError) {
+    return { code: ERROR_CODE.unavailable };
+  }
+  if (e instanceof APIError) {
+    return { code: ERROR_CODE.providerError, log: 'provider error ' + e.status };
+  }
   return null;
 }
 
@@ -71,14 +84,19 @@ export function createAnthropicProvider(cfg) {
         resp = await client.beta.messages.create(params, { signal });
       } catch (e) {
         const m = mapError(e, signal);
-        if (m) throw m;
+        if (m) {
+          throw m;
+        }
         throw e;
       }
       const usage = resp.usage || {};
       const cost = costUsd(resp.model || cfg.model, usage);
-      if (resp.stop_reason === 'refusal') throw { code: ERROR_CODE.refused, costUsd: cost };
-      if (resp.stop_reason === 'max_tokens')
+      if (resp.stop_reason === 'refusal') {
+        throw { code: ERROR_CODE.refused, costUsd: cost };
+      }
+      if (resp.stop_reason === 'max_tokens') {
         throw { code: ERROR_CODE.invalidResponse, costUsd: cost, log: 'response hit max_tokens' };
+      }
       const text = (resp.content || [])
         .filter(b => b.type === 'text')
         .map(b => b.text)

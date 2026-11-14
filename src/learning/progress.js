@@ -61,16 +61,22 @@ const trackOf = a => (OBJECTIVES[a.objectiveId] || {}).track;
 /* The comparable number for an attempt: the evaluator's primary metric, current analysis version only. */
 export function primaryValue(a) {
   const an = a.analysis;
-  if (!an || an.status !== ANALYSIS_STATUS.measured) return null;
+  if (!an || an.status !== ANALYSIS_STATUS.measured) {
+    return null;
+  }
   const def = METRICS[an.evaluator];
-  if (!def || !def.primary || def.version !== an.version) return null;
+  if (!def || !def.primary || def.version !== an.version) {
+    return null;
+  }
   const row = def.rows.find(r => r.key === def.primary);
   const v = row.value(an.metrics || {});
   return v == null ? null : { value: v, row };
 }
 
 function trendOf(values, row) {
-  if (values.length < TREND_MIN_SAMPLES) return { status: TREND.insufficient, early: null, recent: null };
+  if (values.length < TREND_MIN_SAMPLES) {
+    return { status: TREND.insufficient, early: null, recent: null };
+  }
   const early = median(values.slice(0, 3)),
     recent = median(values.slice(-3));
   const gain = row.better === BETTER.lower ? early - recent : recent - early;
@@ -99,8 +105,11 @@ export function trackProgress(track, attempts, sessions) {
     .filter(a => a.analysis && a.analysis.status === ANALYSIS_STATUS.measured)
     .slice(-RECENT_WINDOW);
   const counts = {};
-  for (const a of recent)
-    if (a.issues && a.issues.primary) counts[a.issues.primary] = (counts[a.issues.primary] || 0) + 1;
+  for (const a of recent) {
+    if (a.issues && a.issues.primary) {
+      counts[a.issues.primary] = (counts[a.issues.primary] || 0) + 1;
+    }
+  }
   const recurring = Object.entries(counts)
     .filter(([, n]) => n >= RECURRING_MIN)
     .sort((x, y) => y[1] - x[1])
@@ -136,7 +145,9 @@ export function trackProgress(track, attempts, sessions) {
 
 export function computeProgress({ attempts, sessions }) {
   const out = {};
-  for (const t of Object.keys(TRACKS)) out[t] = trackProgress(t, attempts || [], sessions || []);
+  for (const t of Object.keys(TRACKS)) {
+    out[t] = trackProgress(t, attempts || [], sessions || []);
+  }
   return out;
 }
 
@@ -201,9 +212,13 @@ export function recommendNext({ progress, sessions, now }) {
   // 4. Progress to the next objective once independent results sit within tolerance.
   for (const t of tracks) {
     const ind = t.independent;
-    if (!ind.sufficient || ind.metric == null) continue;
+    if (!ind.sufficient || ind.metric == null) {
+      continue;
+    }
     const within = ind.lastWithin.length >= ADAPT_WINDOW && ind.lastWithin.every(Boolean);
-    if (!within) continue;
+    if (!within) {
+      continue;
+    }
     const next = objectivesForTrack(t.track).find(id => !practiced.has(id) && prerequisitesMet(id, practiced));
     const nextOther = Object.keys(OBJECTIVES).find(id => !practiced.has(id) && prerequisitesMet(id, practiced));
     const target = next || nextOther;
@@ -234,10 +249,11 @@ export function recommendNext({ progress, sessions, now }) {
 export function suggestGuidance(tp, level) {
   const last = tp.independent.lastWithin;
   const keep = reason => ({ level, change: ADAPT.keep, reason });
-  if (last.length < ADAPT_WINDOW)
+  if (last.length < ADAPT_WINDOW) {
     return keep(
       `Needs ${ADAPT_WINDOW} independent tests on this skill before changing guidance (${last.length} so far).`,
     );
+  }
   if (last.every(Boolean) && level > GUIDANCE.independent) {
     return {
       level: level - 1,
@@ -259,20 +275,26 @@ export function suggestGuidance(tp, level) {
 export function suggestTier(tp, tier, guidance) {
   const last = tp.independent.lastWithin;
   const keep = reason => ({ tier, change: ADAPT.keep, reason });
-  if (last.length < ADAPT_WINDOW) return keep('Not enough independent tests yet to change difficulty.');
-  if (guidance > GUIDANCE.independent) return keep('Guidance is reduced before references get harder.');
-  if (last.every(Boolean) && tier < MAX_TIER)
+  if (last.length < ADAPT_WINDOW) {
+    return keep('Not enough independent tests yet to change difficulty.');
+  }
+  if (guidance > GUIDANCE.independent) {
+    return keep('Guidance is reduced before references get harder.');
+  }
+  if (last.every(Boolean) && tier < MAX_TIER) {
     return {
       tier: tier + 1,
       change: ADAPT.raise,
       reason: `Your last ${ADAPT_WINDOW} independent tests were within tolerance, so poses get more complex.`,
     };
-  if (last.every(v => v === false) && tier > MIN_TIER)
+  }
+  if (last.every(v => v === false) && tier > MIN_TIER) {
     return {
       tier: tier - 1,
       change: ADAPT.lower,
       reason: `Your last ${ADAPT_WINDOW} independent tests were outside tolerance, so poses get simpler for now.`,
     };
+  }
   return keep('Recent results are mixed, so difficulty stays the same.');
 }
 

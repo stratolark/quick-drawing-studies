@@ -37,8 +37,12 @@ const sel = { type: null, objectiveId: null, objectiveTouched: false, source: RE
 
 function overridesFor(L, type) {
   const o = L.data.prefs.overrides;
-  if (!o[type]) o[type] = { stages: {} };
-  if (!o[type].stages) o[type].stages = {};
+  if (!o[type]) {
+    o[type] = { stages: {} };
+  }
+  if (!o[type].stages) {
+    o[type].stages = {};
+  }
   return o[type];
 }
 
@@ -52,8 +56,11 @@ function numberInput(value, min, max, label, onchange) {
   });
   i.addEventListener('change', () => {
     const v = Math.round(Number(i.value));
-    if (v >= min && v <= max) onchange(v);
-    else i.value = String(value);
+    if (v >= min && v <= max) {
+      onchange(v);
+    } else {
+      i.value = String(value);
+    }
   });
   return i;
 }
@@ -118,7 +125,9 @@ function renderStages(L, plan) {
 
 function coachSettings(L) {
   const c = L.coach;
-  if (!c.available) return el('span', { text: 'AI coach not connected: measurements and self-checks still work.' });
+  if (!c.available) {
+    return el('span', { text: 'AI coach not connected: measurements and self-checks still work.' });
+  }
   const cb = el('input', {
     type: 'checkbox',
     id: 'homeAiOptIn',
@@ -157,8 +166,12 @@ export function renderPractice(L) {
   const api = L.api;
   const prefs = L.data.prefs;
   const rec = L.recommend();
-  if (!sel.type) sel.type = SESSION_TEMPLATES[prefs.lastType] ? prefs.lastType : SESSION_TYPE.focused;
-  if (!sel.objectiveTouched || !OBJECTIVES[sel.objectiveId]) sel.objectiveId = rec.objectiveId;
+  if (!sel.type) {
+    sel.type = SESSION_TEMPLATES[prefs.lastType] ? prefs.lastType : SESSION_TYPE.focused;
+  }
+  if (!sel.objectiveTouched || !OBJECTIVES[sel.objectiveId]) {
+    sel.objectiveId = rec.objectiveId;
+  }
   const O = OBJECTIVES[sel.objectiveId];
 
   $('#todayCard').replaceChildren(
@@ -276,7 +289,9 @@ export function renderPractice(L) {
   renderStages(L, plan);
 
   const mine = api.S.refs.filter(r => r.category === O.reference.subject).length;
-  if (!api.canGenerate()) sel.source = REF_SOURCE.mine;
+  if (!api.canGenerate()) {
+    sel.source = REF_SOURCE.mine;
+  }
   const start = $('#learnStart');
   start.textContent = 'Start ' + SESSION_TEMPLATES[sel.type].name;
   start.disabled = !api.canGenerate() && !mine;
@@ -302,10 +317,11 @@ export function renderPractice(L) {
       },
     );
     noteKids.push(box, ' ');
-    if (sel.source === REF_SOURCE.mine)
+    if (sel.source === REF_SOURCE.mine) {
       noteKids.push(
         el('span', { text: 'Your images have no verified geometry, so measurements are limited to self-checks. ' }),
       );
+    }
   }
   noteKids.push(coachSettings(L));
   $('#learnNote').replaceChildren(...noteKids);
@@ -426,8 +442,9 @@ export function renderProgressPage(L) {
       line('Exercises covered', t.coverage.length + ' of ' + objectivesForTrack(t.track).length),
     );
     kids.push(el('h3', { class: 'section-label', text: 'Independent performance (new references, no hints)' }));
-    if (!ind.metric) kids.push(el('p', { class: 'coach-note', text: 'No measured independent tests yet.' }));
-    else {
+    if (!ind.metric) {
+      kids.push(el('p', { class: 'coach-note', text: 'No measured independent tests yet.' }));
+    } else {
       kids.push(line('Measured tests', String(ind.samples)));
       kids.push(
         line(
@@ -462,7 +479,7 @@ export function renderProgressPage(L) {
     panels.push(el('section', { class: 'panel' }, ...kids));
   }
   const reflections = L.data.sessions.filter(s => s.reflection).slice(0, 3);
-  if (reflections.length)
+  if (reflections.length) {
     panels.push(
       el(
         'section',
@@ -488,6 +505,7 @@ export function renderProgressPage(L) {
         ),
       ),
     );
+  }
   panels.push(
     el(
       'section',

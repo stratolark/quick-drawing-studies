@@ -306,8 +306,12 @@ const positive = v => (Number.isFinite(v) && v > 0 ? v : null);
 export function buildPlan(type, objectiveId, overrides) {
   const T = SESSION_TEMPLATES[type];
   const O = OBJECTIVES[objectiveId];
-  if (!T) throw new Error('unknown session type: ' + type);
-  if (!O) throw new Error('unknown objective: ' + objectiveId);
+  if (!T) {
+    throw new Error('unknown session type: ' + type);
+  }
+  if (!O) {
+    throw new Error('unknown objective: ' + objectiveId);
+  }
   const ov = (overrides && overrides.stages) || {};
   const plan = {};
   for (const stage of PLANNED_STAGES) {
@@ -329,7 +333,9 @@ export function buildPlan(type, objectiveId, overrides) {
       entry.count = Math.max(1, Math.round(o.count || base.count || fit));
     } else if (stage === STAGE.focused || stage === STAGE.correction) {
       entry.secs = clampSecs(o.secs || O.secs.practice * T.practiceScale);
-      if (stage === STAGE.correction) entry.maxRetries = Math.max(1, o.maxRetries || base.maxRetries);
+      if (stage === STAGE.correction) {
+        entry.maxRetries = Math.max(1, o.maxRetries || base.maxRetries);
+      }
     } else if (stage === STAGE.transfer) {
       entry.secs = clampSecs(o.secs || O.secs.transfer * T.practiceScale);
     }

@@ -46,7 +46,9 @@ function isCurrentReview(L, entry) {
 
 function continueLabel(L, entry) {
   const live = L.live;
-  if (entry.type === ATTEMPT_TYPE.transfer || !live.plan[STAGE.transfer].enabled) return 'See summary';
+  if (entry.type === ATTEMPT_TYPE.transfer || !live.plan[STAGE.transfer].enabled) {
+    return 'See summary';
+  }
   return 'Continue to the test';
 }
 
@@ -54,7 +56,9 @@ function continueLabel(L, entry) {
 
 function evidenceTable(analysis) {
   const rows = evidenceFor(analysis);
-  if (!rows.length) return null;
+  if (!rows.length) {
+    return null;
+  }
   return el(
     'table',
     { class: 'ev-table' },
@@ -94,7 +98,9 @@ function evidenceTable(analysis) {
 
 function candidatePicker(L, entry) {
   const sel = entry.analysis.selection;
-  if (!sel) return null;
+  if (!sel) {
+    return null;
+  }
   const shown = sel.candidates.slice(0, 3);
   return el(
     'div',
@@ -194,19 +200,25 @@ function measuredSection(L, entry) {
     return out;
   }
   if (a.status === ANALYSIS_STATUS.unavailable) {
-    for (const l of a.limitations) out.push(el('p', { text: l }));
+    for (const l of a.limitations) {
+      out.push(el('p', { text: l }));
+    }
     out.push(
       el('p', { text: 'Check it yourself against the overlay:' }),
       el('ul', { class: 'questions' }, ...O.selfCheck.map(q => el('li', { text: q }))),
     );
     return out;
   }
-  if (a.status === ANALYSIS_STATUS.ambiguous) out.push(candidatePicker(L, entry));
+  if (a.status === ANALYSIS_STATUS.ambiguous) {
+    out.push(candidatePicker(L, entry));
+  }
   const p = entry.issues.primary;
   if (p) {
     out.push(block('fix', 'Main issue', el('p', { text: p.measured }), el('p', { class: 'coach-note', text: p.why })));
     out.push(block(null, 'How to correct it', el('p', { text: p.fix })));
-    if (p.uncertainty) out.push(note(p.uncertainty));
+    if (p.uncertainty) {
+      out.push(note(p.uncertainty));
+    }
   } else if (a.status === ANALYSIS_STATUS.measured) {
     out.push(
       el('p', {
@@ -236,9 +248,11 @@ function measuredSection(L, entry) {
     ),
   );
   if (p) {
-    if (entry.disagreeOpen === DISAGREE_SOURCE.measured) out.push(disagreeForm(L, entry, DISAGREE_SOURCE.measured));
-    else if (entry.disagreeSaved === DISAGREE_SOURCE.measured) out.push(note('Thanks. Your note was saved.'));
-    else
+    if (entry.disagreeOpen === DISAGREE_SOURCE.measured) {
+      out.push(disagreeForm(L, entry, DISAGREE_SOURCE.measured));
+    } else if (entry.disagreeSaved === DISAGREE_SOURCE.measured) {
+      out.push(note('Thanks. Your note was saved.'));
+    } else {
       out.push(
         el(
           'div',
@@ -254,13 +268,16 @@ function measuredSection(L, entry) {
           }),
         ),
       );
+    }
   }
   return out;
 }
 
 function comparisonSection(L, entry) {
   const c = entry.comparison;
-  if (!c) return [];
+  if (!c) {
+    return [];
+  }
   const out = [el('h3', { class: 'section-label', text: 'Compared with your first try on this reference' })];
   if (!c.comparable) {
     out.push(el('p', { text: c.reason }));
@@ -311,7 +328,9 @@ function aiSection(L, entry) {
     out.push(note('The AI coach is not connected. Everything above works without it.'));
     return out;
   }
-  if (entry.round.empty) return [];
+  if (entry.round.empty) {
+    return [];
+  }
   if (!L.data.prefs.aiOptIn) {
     const cb = el('input', {
       type: 'checkbox',
@@ -344,14 +363,18 @@ function aiSection(L, entry) {
           type: 'button',
           text: 'Stop',
           onclick: () => {
-            if (ai.ctl) ai.ctl.abort();
+            if (ai.ctl) {
+              ai.ctl.abort();
+            }
           },
         }),
       ),
     );
     return out;
   }
-  if (ai.error) out.push(el('p', { class: 'status is-error', text: ai.error }));
+  if (ai.error) {
+    out.push(el('p', { class: 'status is-error', text: ai.error }));
+  }
   if (ai.feedback) {
     const f = ai.feedback;
     out.push(block(null, 'What worked', el('p', { text: f.whatWorked })));
@@ -359,7 +382,7 @@ function aiSection(L, entry) {
     out.push(block(null, 'Why it matters', el('p', { text: f.whyItMatters })));
     out.push(block(null, 'How to correct it', el('p', { text: f.howToCorrect })));
     out.push(block(null, 'Next exercise', el('p', { text: f.nextExercise })));
-    if (f.evidence.length)
+    if (f.evidence.length) {
       out.push(
         block(
           null,
@@ -373,13 +396,18 @@ function aiSection(L, entry) {
           ),
         ),
       );
-    if (f.uncertainty) out.push(block(null, 'How sure', el('p', { text: f.uncertainty })));
-    if (ai.flags.includes('unverified-number'))
+    }
+    if (f.uncertainty) {
+      out.push(block(null, 'How sure', el('p', { text: f.uncertainty })));
+    }
+    if (ai.flags.includes('unverified-number')) {
       out.push(
         note('The coach mentioned numbers that were not measured. They were removed and replaced with "(unmeasured)".'),
       );
-    if (entry.disagreeOpen === DISAGREE_SOURCE.ai) out.push(disagreeForm(L, entry, DISAGREE_SOURCE.ai));
-    else
+    }
+    if (entry.disagreeOpen === DISAGREE_SOURCE.ai) {
+      out.push(disagreeForm(L, entry, DISAGREE_SOURCE.ai));
+    } else {
       out.push(
         el(
           'div',
@@ -403,6 +431,7 @@ function aiSection(L, entry) {
               }),
         ),
       );
+    }
     return out;
   }
   out.push(
@@ -426,8 +455,9 @@ function aiSection(L, entry) {
 function build(L, entry, from) {
   const O = OBJECTIVES[entry.objectiveId];
   const kids = [el('h2', { text: TITLE[entry.type] })];
-  if (entry.type === ATTEMPT_TYPE.transfer)
+  if (entry.type === ATTEMPT_TYPE.transfer) {
     kids.push(note('Drawn on a new reference without hints. This is the result that counts toward your progress.'));
+  }
   // At the Independent level, the learner judges the drawing before seeing any measurement.
   const selfFirst =
     entry.guidance === GUIDANCE.independent && !entry.revealed && entry.analysis.status !== ANALYSIS_STATUS.empty;
@@ -467,13 +497,17 @@ function build(L, entry, from) {
       }),
     );
   }
-  if (actions.childNodes.length) kids.push(actions);
+  if (actions.childNodes.length) {
+    kids.push(actions);
+  }
   return kids;
 }
 
 export function refresh(L, entry) {
   const v = L.api.S.view;
-  if (!v || v.round !== entry.round || !$('#review').classList.contains('is-active')) return;
+  if (!v || v.round !== entry.round || !$('#review').classList.contains('is-active')) {
+    return;
+  }
   $('#coach').replaceChildren(...build(L, entry, v.from).filter(Boolean));
 }
 
@@ -493,7 +527,9 @@ function renderAnnotControls(L, entry) {
       },
     });
     cb.checked = !!toggles[key];
-    if (key !== 'show' && !toggles.show) cb.disabled = true;
+    if (key !== 'show' && !toggles.show) {
+      cb.disabled = true;
+    }
     return el(
       'label',
       { class: 'ctl', for: id },
@@ -505,8 +541,12 @@ function renderAnnotControls(L, entry) {
   const kids = [check('show', 'Annotations')];
   const measured =
     entry.analysis.status === ANALYSIS_STATUS.measured || entry.analysis.status === ANALYSIS_STATUS.ambiguous;
-  if (measured && labels.reference) kids.push(check('reference', labels.reference, COLORS.reference));
-  if (measured && labels.mine) kids.push(check('mine', labels.mine, COLORS.mine, true));
+  if (measured && labels.reference) {
+    kids.push(check('reference', labels.reference, COLORS.reference));
+  }
+  if (measured && labels.mine) {
+    kids.push(check('mine', labels.mine, COLORS.mine, true));
+  }
   const steps = constructionSteps(
     entry.objectiveId,
     entry.ref.meta,
@@ -523,7 +563,9 @@ function renderAnnotControls(L, entry) {
         title: GUIDE_NOTE,
         onclick: () => {
           if (entry.guide) {
-            if (entry.guide.player) entry.guide.player.stop();
+            if (entry.guide.player) {
+              entry.guide.player.stop();
+            }
             entry.guide = null;
             renderAnnotControls(L, entry);
             L.api.recompose();
@@ -532,20 +574,25 @@ function renderAnnotControls(L, entry) {
           toggles.show = true;
           entry.guide = { steps, width: entry.ref.meta.width, upto: 0, t: 0 };
           entry.guide.player = playSteps(steps, (i, t) => {
-            if (!entry.guide) return;
+            if (!entry.guide) {
+              return;
+            }
             entry.guide.upto = i;
             entry.guide.t = t;
             entry.guide.label = steps[Math.min(i, steps.length - 1)].label;
             L.api.recompose();
             const n = $('#guideStep');
-            if (n) n.textContent = Math.min(i, steps.length - 1) + 1 + '/' + steps.length + ' ' + entry.guide.label;
+            if (n) {
+              n.textContent = Math.min(i, steps.length - 1) + 1 + '/' + steps.length + ' ' + entry.guide.label;
+            }
           });
           renderAnnotControls(L, entry);
         },
       }),
     );
-    if (entry.guide)
+    if (entry.guide) {
       kids.push(el('span', { class: 'coach-note', id: 'guideStep', title: GUIDE_NOTE, text: entry.guide.label || '' }));
+    }
   }
   box.replaceChildren(...kids);
   box.hidden = false;
@@ -556,8 +603,11 @@ export function render(L, entry, from) {
   $('#reviewTitle').textContent = TITLE[entry.type];
   $('#reviewSub').textContent = O.description;
   const next = $('#nextBtn');
-  if (from === REVIEW_FROM.summary) next.textContent = 'Back to summary';
-  else next.textContent = continueLabel(L, entry);
+  if (from === REVIEW_FROM.summary) {
+    next.textContent = 'Back to summary';
+  } else {
+    next.textContent = continueLabel(L, entry);
+  }
   // When a retry is offered it is the main action, so "continue" steps back visually.
   next.className =
     from === REVIEW_FROM.session && isCurrentReview(L, entry) && L.canRetry() ? 'btn' : 'btn btn-primary';

@@ -60,7 +60,9 @@ export function inspectImage(bytes) {
       if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
         return { type: 'image/jpeg', height: (b[o + 5] << 8) | b[o + 6], width: (b[o + 7] << 8) | b[o + 8] };
       }
-      if (len < 2) break;
+      if (len < 2) {
+        break;
+      }
       o += 2 + len;
     }
     return { type: 'image/jpeg', width: 0, height: 0 };
@@ -69,70 +71,120 @@ export function inspectImage(bytes) {
 }
 
 export function decodeBase64(s) {
-  if (typeof s !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return null;
+  if (typeof s !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(s)) {
+    return null;
+  }
   const bin = atob(s);
   const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  for (let i = 0; i < bin.length; i++) {
+    out[i] = bin.charCodeAt(i);
+  }
   return out;
 }
 
 export function validateImage(img) {
-  if (!img || typeof img !== 'object') return 'image must be an object';
-  if (!Object.values(IMAGE_ROLE).includes(img.role)) return 'unknown image role';
-  if (!IMAGE_TYPES.includes(img.mediaType)) return 'unsupported image type';
-  if (typeof img.data !== 'string' || img.data.length > Math.ceil((LIMITS.maxImageBytes * 4) / 3) + 4)
+  if (!img || typeof img !== 'object') {
+    return 'image must be an object';
+  }
+  if (!Object.values(IMAGE_ROLE).includes(img.role)) {
+    return 'unknown image role';
+  }
+  if (!IMAGE_TYPES.includes(img.mediaType)) {
+    return 'unsupported image type';
+  }
+  if (typeof img.data !== 'string' || img.data.length > Math.ceil((LIMITS.maxImageBytes * 4) / 3) + 4) {
     return 'image too large';
+  }
   const bytes = decodeBase64(img.data);
-  if (!bytes) return 'image is not base64';
-  if (bytes.length > LIMITS.maxImageBytes) return 'image too large';
+  if (!bytes) {
+    return 'image is not base64';
+  }
+  if (bytes.length > LIMITS.maxImageBytes) {
+    return 'image too large';
+  }
   const info = inspectImage(bytes);
-  if (!info || info.type !== img.mediaType) return 'image content does not match its type';
-  if (!info.width || !info.height || info.width > LIMITS.maxImageSide || info.height > LIMITS.maxImageSide)
+  if (!info || info.type !== img.mediaType) {
+    return 'image content does not match its type';
+  }
+  if (!info.width || !info.height || info.width > LIMITS.maxImageSide || info.height > LIMITS.maxImageSide) {
     return 'image dimensions out of range';
+  }
   return null;
 }
 
 /* Validate an untrusted request body. Returns { ok, value } or { ok: false, error }. */
 export function validateRequest(body) {
   const fail = error => ({ ok: false, error });
-  if (!body || typeof body !== 'object') return fail('body must be an object');
+  if (!body || typeof body !== 'object') {
+    return fail('body must be an object');
+  }
   const O = OBJECTIVES[body.objectiveId];
-  if (!O) return fail('unknown objective');
-  if (!Object.values(ATTEMPT_TYPE).includes(body.attemptType)) return fail('unknown attempt type');
-  if (!(body.guidance in GUIDANCE_LEVELS)) return fail('unknown guidance level');
-  if (typeof body.secs !== 'number' || !(body.secs > 0) || body.secs > 3600) return fail('secs out of range');
+  if (!O) {
+    return fail('unknown objective');
+  }
+  if (!Object.values(ATTEMPT_TYPE).includes(body.attemptType)) {
+    return fail('unknown attempt type');
+  }
+  if (!(body.guidance in GUIDANCE_LEVELS)) {
+    return fail('unknown guidance level');
+  }
+  if (typeof body.secs !== 'number' || !(body.secs > 0) || body.secs > 3600) {
+    return fail('secs out of range');
+  }
   const style = body.style == null ? STYLE.normal : body.style;
-  if (!Object.values(STYLE).includes(style)) return fail('unknown style');
+  if (!Object.values(STYLE).includes(style)) {
+    return fail('unknown style');
+  }
 
   const keys = new Set(metricRows(O.evaluator).map(r => r.key));
   const evidence = Array.isArray(body.evidence) ? body.evidence : [];
-  if (evidence.length > LIMITS.maxEvidence) return fail('too much evidence');
+  if (evidence.length > LIMITS.maxEvidence) {
+    return fail('too much evidence');
+  }
   for (const e of evidence) {
-    if (!e || !keys.has(e.key)) return fail('evidence key not measured by this exercise');
-    if (typeof e.value !== 'number' || !Number.isFinite(e.value)) return fail('evidence value must be a number');
-    if (!isStr(e.display, LIMITS.shortText) || !isStr(e.label, LIMITS.text)) return fail('evidence text invalid');
+    if (!e || !keys.has(e.key)) {
+      return fail('evidence key not measured by this exercise');
+    }
+    if (typeof e.value !== 'number' || !Number.isFinite(e.value)) {
+      return fail('evidence value must be a number');
+    }
+    if (!isStr(e.display, LIMITS.shortText) || !isStr(e.label, LIMITS.text)) {
+      return fail('evidence text invalid');
+    }
   }
   let issue = null;
   if (body.measuredIssue != null) {
     const i = body.measuredIssue;
-    if (!i || !(i.id in ISSUE_LABEL) || !isStr(i.measured, LIMITS.text)) return fail('measured issue invalid');
+    if (!i || !(i.id in ISSUE_LABEL) || !isStr(i.measured, LIMITS.text)) {
+      return fail('measured issue invalid');
+    }
     issue = { id: i.id, measured: i.measured };
   }
   let previous = null;
   if (body.previousFeedback != null) {
-    if (!isStr(body.previousFeedback.mainIssue, LIMITS.text)) return fail('previous feedback invalid');
+    if (!isStr(body.previousFeedback.mainIssue, LIMITS.text)) {
+      return fail('previous feedback invalid');
+    }
     previous = { mainIssue: body.previousFeedback.mainIssue };
   }
   const images = Array.isArray(body.images) ? body.images : [];
-  if (!images.length || images.length > LIMITS.maxImages) return fail('send one to three images');
+  if (!images.length || images.length > LIMITS.maxImages) {
+    return fail('send one to three images');
+  }
   const roles = new Set();
   for (const img of images) {
     const err = validateImage(img);
-    if (err) return fail(err);
-    if (roles.has(img.role)) return fail('duplicate image role');
+    if (err) {
+      return fail(err);
+    }
+    if (roles.has(img.role)) {
+      return fail('duplicate image role');
+    }
     roles.add(img.role);
   }
-  if (!roles.has(IMAGE_ROLE.drawing) && !roles.has(IMAGE_ROLE.overlay)) return fail('the drawing must be included');
+  if (!roles.has(IMAGE_ROLE.drawing) && !roles.has(IMAGE_ROLE.overlay)) {
+    return fail('the drawing must be included');
+  }
   return {
     ok: true,
     value: {
@@ -196,7 +248,9 @@ export const UNVERIFIED = '(unmeasured)';
 function allowedNumbers(evidence) {
   const out = new Set();
   for (const e of evidence) {
-    for (const m of String(e.display).matchAll(/\d+(?:\.\d+)?/g)) out.add(Number(m[0]));
+    for (const m of String(e.display).matchAll(/\d+(?:\.\d+)?/g)) {
+      out.add(Number(m[0]));
+    }
   }
   return out;
 }
@@ -204,7 +258,11 @@ function allowedNumbers(evidence) {
 function scrub(text, allowed, flags) {
   return text.replace(UNIT_NUMBER, (whole, num) => {
     const n = Number(num.replace(',', '.'));
-    for (const a of allowed) if (Math.abs(a - n) <= 1) return whole;
+    for (const a of allowed) {
+      if (Math.abs(a - n) <= 1) {
+        return whole;
+      }
+    }
     flags.add('unverified-number');
     return UNVERIFIED;
   });
@@ -212,17 +270,22 @@ function scrub(text, allowed, flags) {
 
 /* Validate and clean a model response. Throws { code: invalid_response } when the shape is wrong. */
 export function sanitizeFeedback(raw, evidence) {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw))
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw { code: ERROR_CODE.invalidResponse, message: 'response is not an object' };
+  }
   const flags = new Set();
   const allowed = allowedNumbers(evidence || []);
   const keys = new Set((evidence || []).map(e => e.key).concat(VISUAL_EVIDENCE));
   const out = {};
   for (const f of FEEDBACK_FIELDS) {
-    if (typeof raw[f] !== 'string') throw { code: ERROR_CODE.invalidResponse, message: 'missing ' + f };
+    if (typeof raw[f] !== 'string') {
+      throw { code: ERROR_CODE.invalidResponse, message: 'missing ' + f };
+    }
     out[f] = scrub(clip(raw[f], 600), allowed, flags);
   }
-  if (!out.mainIssue || !out.howToCorrect) throw { code: ERROR_CODE.invalidResponse, message: 'empty main issue' };
+  if (!out.mainIssue || !out.howToCorrect) {
+    throw { code: ERROR_CODE.invalidResponse, message: 'empty main issue' };
+  }
   const ev = Array.isArray(raw.evidence) ? raw.evidence : [];
   out.evidence = [];
   for (const e of ev.slice(0, LIMITS.maxEvidence)) {

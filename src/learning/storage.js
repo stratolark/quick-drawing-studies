@@ -53,7 +53,9 @@ export function memoryBackend(initial) {
 
 function readJSON(backend, key, fallback) {
   const raw = backend.get(key);
-  if (raw == null) return fallback;
+  if (raw == null) {
+    return fallback;
+  }
   try {
     return JSON.parse(raw);
   } catch (e) {
@@ -65,20 +67,29 @@ const asArray = v => (Array.isArray(v) ? v : []);
 
 function normalizePrefs(p) {
   const base = clonePrefs(DEFAULT_PREFS);
-  if (!p || typeof p !== 'object') return base;
+  if (!p || typeof p !== 'object') {
+    return base;
+  }
   for (const t of Object.keys(TRACKS)) {
     if (
       p.guidance &&
       Number.isInteger(p.guidance[t]) &&
       p.guidance[t] >= GUIDANCE.independent &&
       p.guidance[t] <= GUIDANCE.guided
-    )
+    ) {
       base.guidance[t] = p.guidance[t];
-    if (p.tier && Number.isInteger(p.tier[t]) && p.tier[t] >= 1 && p.tier[t] <= 3) base.tier[t] = p.tier[t];
+    }
+    if (p.tier && Number.isInteger(p.tier[t]) && p.tier[t] >= 1 && p.tier[t] <= 3) {
+      base.tier[t] = p.tier[t];
+    }
   }
   base.aiOptIn = p.aiOptIn === true;
-  if (p.overrides && typeof p.overrides === 'object') base.overrides = p.overrides;
-  if (typeof p.lastType === 'string') base.lastType = p.lastType;
+  if (p.overrides && typeof p.overrides === 'object') {
+    base.overrides = p.overrides;
+  }
+  if (typeof p.lastType === 'string') {
+    base.lastType = p.lastType;
+  }
   return base;
 }
 
@@ -108,7 +119,9 @@ export function createStorage(backend) {
     const all = asArray(readJSON(backend, key, [])).filter(x => x && x.id !== record.id);
     all.unshift(record);
     let list = all.slice(0, limit);
-    if (write(key, list)) return true;
+    if (write(key, list)) {
+      return true;
+    }
     list = list.slice(0, Math.max(1, Math.floor(list.length / 2)));
     return write(key, list);
   }
@@ -126,7 +139,9 @@ export function createStorage(backend) {
 
 /* DrawingReference without blobs or URLs. Generated references can be re-rendered from seed and options. */
 export function toReferenceRecord(meta) {
-  if (!meta) return null;
+  if (!meta) {
+    return null;
+  }
   const g = meta.geometry || {};
   return {
     id: meta.id,
