@@ -210,6 +210,11 @@ describe('prompt construction', () => {
     expect(costUsd('claude-opus-5-5', { input_tokens: 1e6, output_tokens: 0 })).toBe(4);
     expect(costUsd('mystery', { input_tokens: 0, output_tokens: 1e6 })).toBe(40);
   });
+  it('accounts for each model when a paid request falls back', () => {
+    const first = { model: 'claude-opus-5-5', input_tokens: 1000, output_tokens: 200 };
+    const fallback = { model: 'claude-sonnet-5-5', input_tokens: 1000, output_tokens: 400 };
+    expect(costUsd(fallback.model, { ...fallback, iterations: [first, fallback] })).toBeCloseTo(0.014, 6);
+  });
 });
 
 describe('guards and configuration', () => {
@@ -224,10 +229,20 @@ describe('guards and configuration', () => {
   });
   it('stops spending at the daily budget', () => {
     const b = createBudget({ dailyUsd: 0.05 });
-    expect(b.allows(0)).toBe(true);
-    b.record(0.06, 0);
-    expect(b.allows(0)).toBe(false);
-    expect(b.allows(86400000)).toBe(true);
+    expect(b.reserve(0.06, 0)).toBeNull();
+    const settle = b.reserve(0.05, 0);
+    expect(b.reserve(0.01, 0)).toBeNull();
+    settle(0.01);
+    expect(b.reserve(0.04, 0)).toBeTypeOf('function');
+    expect(b.reserve(0.05, 86400000)).toBeTypeOf('function');
+  });
+  it('keeps uncertain charges and settles late results against their original day', () => {
+    const b = createBudget({ dailyUsd: 1 });
+    const settleYesterday = b.reserve(1, 0);
+    const settleToday = b.reserve(1, 86400000);
+    settleYesterday(0);
+    settleToday(undefined);
+    expect(b.reserve(1, 86400000)).toBeNull();
   });
   it('checks access codes', () => {
     expect(accessAllowed('', undefined)).toBe(true);
@@ -277,10 +292,11 @@ describe('coach server', () => {
     handlerFor('limited', { ratePerMinute: 1 });
     handlerFor(
       'broke',
-      { dailyBudgetUsd: 0.0001 },
+      { dailyBudgetUsd: 1 },
       {
         name: 'mock',
         model: 'm',
+        maxCostUsd: () => 1,
         review: async () => ({
           raw: mockFeedback(validateRequest(body()).value),
           model: 'm',
@@ -357,6 +373,33 @@ describe('coach server', () => {
   it('stops at the spending budget', async () => {
     expect((await post('broke', body())).status).toBe(200);
     expect((await post('broke', body())).status).toBe(402);
+  });
+  it('reserves funds before concurrent reviews and releases unused funds', async () => {
+    const entered = Promise.withResolvers();
+    const finish = Promise.withResolvers();
+    const provider = createMockProvider(baseCfg);
+    handlerFor(
+      'concurrent',
+      {},
+      {
+        ...provider,
+        maxCostUsd: () => baseCfg.dailyBudgetUsd,
+        async review(...args) {
+          entered.resolve();
+          await finish.promise;
+          return provider.review(...args);
+        },
+      },
+    );
+    const first = post('concurrent', body());
+    await entered.promise;
+    try {
+      expect((await post('concurrent', body())).status).toBe(402);
+    } finally {
+      finish.resolve();
+    }
+    expect((await first).status).toBe(200);
+    expect((await post('concurrent', body())).status).toBe(200);
   });
 });
 

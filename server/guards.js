@@ -31,26 +31,24 @@ export function createRateLimiter({ perMinute, perDay }) {
 }
 
 export function createBudget({ dailyUsd }) {
-  let day = null,
-    spent = 0;
-  const roll = now => {
-    const d = dayKey(now);
-    if (d !== day) {
-      day = d;
-      spent = 0;
-    }
-  };
+  let current;
   return {
-    allows(now = Date.now()) {
-      roll(now);
-      return spent < dailyUsd;
-    },
-    record(usd, now = Date.now()) {
-      roll(now);
-      spent += Math.max(0, usd || 0);
-    },
-    get spent() {
-      return spent;
+    reserve(maxUsd, now = Date.now()) {
+      const day = dayKey(now);
+      if (current?.day !== day) {
+        current = { day, committed: 0 };
+      }
+      if (!Number.isFinite(maxUsd) || maxUsd < 0 || current.committed + maxUsd > dailyUsd) {
+        return null;
+      }
+      // A response arriving after midnight settles against the day that admitted it.
+      const account = current;
+      account.committed += maxUsd;
+      return actualUsd => {
+        if (Number.isFinite(actualUsd) && actualUsd >= 0) {
+          account.committed += actualUsd - maxUsd;
+        }
+      };
     },
   };
 }

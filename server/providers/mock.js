@@ -55,6 +55,7 @@ export function createMockProvider(cfg) {
   return {
     name: 'mock',
     model: 'mock-coach',
+    maxCostUsd: () => 0,
     async review(req, { signal }) {
       if (mode === 'slow') {
         await wait(SLOW_MS, signal);

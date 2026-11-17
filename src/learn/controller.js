@@ -111,6 +111,7 @@ export function createLearning(api, ui) {
       onRoundEnd: r => onAttemptDone(r),
       onQuit: () => L.quit(),
       onPause: () => togglePause(),
+      isPaused: () => L.live.state.paused,
     };
     dispatch({ type: EVENT.start });
   };
@@ -408,6 +409,7 @@ export function createLearning(api, ui) {
     for (const child of L.live.entries.values()) {
       if (child.parentId === entry.id) {
         child.comparison = compareAnalyses(entry.analysis, child.analysis);
+        saveAttempt(child);
       }
     }
     saveAttempt(entry);

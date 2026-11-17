@@ -1213,9 +1213,14 @@ export function startApp() {
   }
   function countdown(ss) {
     return new Promise(resolve => {
+      const countdownStepMs = 800;
       let n = 3,
         t = 0;
+      const paused = () => ss.isPaused?.() || dialog.open;
       const done = () => {
+        if (paused()) {
+          return;
+        }
         clearTimeout(t);
         readyEl.removeEventListener('click', done);
         readyEl.hidden = true;
@@ -1227,13 +1232,17 @@ export function startApp() {
           resolve();
           return;
         }
+        if (paused()) {
+          t = setTimeout(tick, countdownStepMs);
+          return;
+        }
         if (n <= 0) {
           done();
           return;
         }
         $('#readyCount').textContent = n;
         n--;
-        t = setTimeout(tick, 800);
+        t = setTimeout(tick, countdownStepMs);
       };
       readyEl.addEventListener('click', done);
       tick();
@@ -1509,6 +1518,10 @@ export function startApp() {
     }
   }
   function pauseV2(ss, paused) {
+    $('#pauseBtn').textContent = paused ? 'Resume' : 'Pause';
+    if (!readyEl.hidden) {
+      return;
+    }
     if (paused) {
       Timer.pause();
       sketch.lock(true);
@@ -1518,7 +1531,6 @@ export function startApp() {
       canvasPane.classList.remove('is-locked');
       Timer.resume();
     }
-    $('#pauseBtn').textContent = paused ? 'Resume' : 'Pause';
   }
   function stopDrawing() {
     Timer.stop();
@@ -2396,19 +2408,19 @@ export function startApp() {
   }
 
   /* ---------- dialog & toast ---------- */
+  const dialog = $('#dialog');
   let dialogResolve = null;
   function confirmDialog(title, body, okLabel) {
     return new Promise(res => {
       $('#dlgTitle').textContent = title;
       $('#dlgBody').textContent = body;
       $('#dlgOk').textContent = okLabel || 'OK';
-      $('#dialog').hidden = false;
       dialogResolve = res;
-      $('#dlgCancel').focus();
+      dialog.showModal();
     });
   }
   function closeDialog(v) {
-    $('#dialog').hidden = true;
+    dialog.close();
     const r = dialogResolve;
     dialogResolve = null;
     if (r) {
@@ -2417,10 +2429,14 @@ export function startApp() {
   }
   $('#dlgOk').addEventListener('click', () => closeDialog(true));
   $('#dlgCancel').addEventListener('click', () => closeDialog(false));
-  $('#dialog').addEventListener('click', e => {
-    if (e.target.id === 'dialog') {
+  dialog.addEventListener('click', e => {
+    if (e.target === dialog) {
       closeDialog(false);
     }
+  });
+  dialog.addEventListener('cancel', e => {
+    e.preventDefault();
+    closeDialog(false);
   });
   let toastT = 0;
   function toast(msg) {
@@ -2532,13 +2548,13 @@ export function startApp() {
   });
 
   document.addEventListener('keydown', e => {
-    if (!$('#dialog').hidden) {
-      if (e.key === 'Escape') {
-        closeDialog(false);
-      }
+    if (dialog.open) {
       return;
     }
     if (!$('#draw').classList.contains('is-active') || !S.session) {
+      return;
+    }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('button')) {
       return;
     }
     if (!readyEl.hidden && (e.key === 'Enter' || e.key === ' ')) {

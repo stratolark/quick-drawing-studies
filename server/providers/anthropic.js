@@ -27,7 +27,15 @@ const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 const MAX_TOKENS = 16000;
 
 export function costUsd(model, usage) {
-  const [pin, pout] = PRICES[model] || FALLBACK_PRICE;
+  // With fallback, top-level usage covers only the serving model.
+  const attempts = usage.iterations?.length ? usage.iterations : [usage];
+  return attempts.reduce(
+    (total, attempt) => total + priceUsage(PRICES[attempt.model ?? model] ?? FALLBACK_PRICE, attempt),
+    0,
+  );
+}
+
+function priceUsage([pin, pout], usage) {
   return ((usage.input_tokens || 0) * pin + (usage.output_tokens || 0) * pout) / 1e6;
 }
 
@@ -39,13 +47,13 @@ function mapError(e, signal) {
     return { code: ERROR_CODE.timeout };
   }
   if (e instanceof RateLimitError) {
-    return { code: ERROR_CODE.rateLimited };
+    return { code: ERROR_CODE.rateLimited, costUsd: 0 };
   }
   if (e instanceof AuthenticationError || e instanceof PermissionDeniedError) {
-    return { code: ERROR_CODE.providerError, log: 'provider rejected the API key' };
+    return { code: ERROR_CODE.providerError, costUsd: 0, log: 'provider rejected the API key' };
   }
   if (e instanceof BadRequestError) {
-    return { code: ERROR_CODE.providerError, log: 'provider rejected the request: ' + e.message };
+    return { code: ERROR_CODE.providerError, costUsd: 0, log: 'provider rejected the request: ' + e.message };
   }
   if (e instanceof InternalServerError) {
     return { code: ERROR_CODE.unavailable };
@@ -60,20 +68,33 @@ function mapError(e, signal) {
 }
 
 export function createAnthropicProvider(cfg) {
-  const client = new Anthropic({ timeout: cfg.timeoutMs, maxRetries: 1 });
+  const client = new Anthropic({ timeout: cfg.timeoutMs, maxRetries: 0 });
+  const promptParams = req => ({
+    model: cfg.model,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: buildUserContent(req) }],
+    output_config: {
+      effort: cfg.effort,
+      format: { type: 'json_schema', schema: feedbackJsonSchema(req.evidence.map(e => e.key)) },
+    },
+  });
   return {
     name: 'anthropic',
     model: cfg.model,
+    async maxCostUsd(req, { signal }) {
+      try {
+        const { input_tokens } = await client.beta.messages.countTokens(promptParams(req), { signal });
+        const maxUsage = { input_tokens, output_tokens: MAX_TOKENS };
+        const primaryCost = costUsd(cfg.model, maxUsage);
+        return cfg.fallbacks ? primaryCost + priceUsage(FALLBACK_PRICE, maxUsage) : primaryCost;
+      } catch (e) {
+        throw mapError(e, signal) || e;
+      }
+    },
     async review(req, { signal }) {
       const params = {
-        model: cfg.model,
+        ...promptParams(req),
         max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: buildUserContent(req) }],
-        output_config: {
-          effort: cfg.effort,
-          format: { type: 'json_schema', schema: feedbackJsonSchema(req.evidence.map(e => e.key)) },
-        },
       };
       if (cfg.fallbacks) {
         params.betas = [FALLBACK_BETA];
@@ -89,7 +110,11 @@ export function createAnthropicProvider(cfg) {
         }
         throw e;
       }
-      const usage = resp.usage || {};
+      if (!resp.usage) {
+        // Without reported usage the budget keeps the reservation.
+        throw { code: ERROR_CODE.invalidResponse, log: 'provider returned no usage' };
+      }
+      const usage = resp.usage;
       const cost = costUsd(resp.model || cfg.model, usage);
       if (resp.stop_reason === 'refusal') {
         throw { code: ERROR_CODE.refused, costUsd: cost };

@@ -327,16 +327,16 @@
       </section>
     </div>
 
-    <div class="dialog" id="dialog" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <dialog class="dialog" id="dialog" aria-labelledby="dlgTitle" aria-describedby="dlgBody">
       <div class="dialog-card">
         <h2 id="dlgTitle"></h2>
         <p id="dlgBody"></p>
         <div class="dialog-actions">
-          <button class="btn" type="button" id="dlgCancel">Cancel</button>
+          <button class="btn" type="button" id="dlgCancel" autofocus>Cancel</button>
           <button class="btn btn-primary" type="button" id="dlgOk">OK</button>
         </div>
       </div>
-    </div>
+    </dialog>
     <div class="toast" id="toast" hidden role="status"></div>
 
     <script type="module" src="/src/main.js"></script>

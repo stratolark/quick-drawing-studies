@@ -124,11 +124,6 @@ export function createCoachHandler({ cfg, provider, log = console.log }) {
       done(429, ERROR_CODE.rateLimited);
       return;
     }
-    if (!budget.allows()) {
-      sendError(res, ERROR_CODE.budgetExhausted);
-      done(402, ERROR_CODE.budgetExhausted);
-      return;
-    }
 
     let parsed;
     try {
@@ -154,22 +149,28 @@ export function createCoachHandler({ cfg, provider, log = console.log }) {
         ctl.abort('cancelled');
       }
     });
+    let settle;
+    let actualUsd;
     try {
+      const maximumUsd = await provider.maxCostUsd(v.value, { signal: ctl.signal });
+      settle = budget.reserve(maximumUsd);
+      if (!settle) {
+        throw { code: ERROR_CODE.budgetExhausted };
+      }
       const out = await provider.review(v.value, { signal: ctl.signal });
-      budget.record(out.costUsd);
+      actualUsd = out.costUsd;
       const clean = sanitizeFeedback(out.raw, v.value.evidence);
       send(res, 200, { apiVersion: COACH_API_VERSION, feedback: clean.feedback, flags: clean.flags, model: out.model });
       done(200, null, `in=${out.usage.inputTokens} out=${out.usage.outputTokens} usd=${out.costUsd.toFixed(4)}`);
     } catch (e) {
-      if (e && e.costUsd) {
-        budget.record(e.costUsd);
-      }
+      actualUsd ??= e?.costUsd;
       const code = e && e.code && STATUS_FOR[e.code] ? e.code : ERROR_CODE.providerError;
       if (!res.writableEnded && !res.destroyed) {
         sendError(res, code);
       }
       done(STATUS_FOR[code], code, e && e.log ? e.log : e && !e.code ? String(e.message || e) : '');
     } finally {
+      settle?.(actualUsd);
       clearTimeout(timer);
     }
   }
